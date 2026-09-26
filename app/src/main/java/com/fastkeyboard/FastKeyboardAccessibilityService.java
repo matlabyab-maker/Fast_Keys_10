@@ -52,6 +52,38 @@ public class FastKeyboardAccessibilityService extends AccessibilityService {
     public static void disable(){ if(instance!=null) instance.stopSelf(); }
     public static void scrollToTop(){ if(instance!=null) instance.scrollTop(); }
     public static void scrollToBottom(){ if(instance!=null) instance.scrollBottom(); }
+    public static void scrollOneStepUp(){ if(instance!=null) instance.scrollOneStep(false); }
+    public static void scrollOneStepDown(){ if(instance!=null) instance.scrollOneStep(true); }
+
+    private void scrollOneStep(boolean down){
+        AccessibilityNodeInfo root=getRootInActiveWindow();
+        boolean moved=down ? scrollNodesForwardOnce(root) : scrollNodesOnce(root);
+        if(!moved) swipeOneStep(down);
+    }
+    private boolean scrollNodesOnce(AccessibilityNodeInfo node){
+        if(node==null)return false;
+        try{
+            if(node.isScrollable() && node.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return true;
+            for(int i=0;i<node.getChildCount();i++) if(scrollNodesOnce(node.getChild(i))) return true;
+        }catch(Exception ignored){}
+        return false;
+    }
+    private boolean scrollNodesForwardOnce(AccessibilityNodeInfo node){
+        if(node==null)return false;
+        try{
+            if(node.isScrollable() && node.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) return true;
+            for(int i=0;i<node.getChildCount();i++) if(scrollNodesForwardOnce(node.getChild(i))) return true;
+        }catch(Exception ignored){}
+        return false;
+    }
+    private void swipeOneStep(boolean down){
+        float x=Math.max(dp(40),Math.min(screenW-dp(40),screenW/2f));
+        float center=screenH*0.45f, distance=Math.max(dp(90),screenH*0.22f);
+        float y1=down?center+distance/2f:center-distance/2f;
+        float y2=down?center-distance/2f:center+distance/2f;
+        Path path=new Path(); path.moveTo(x,y1); path.lineTo(x,y2);
+        try{ dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(path,0,280)).build(),null,null); }catch(Exception ignored){}
+    }
     private void tap(boolean right){ if(right){longPress(cursorX,cursorY);return;} if(clickNodeAt(getRootInActiveWindow(),cursorX,cursorY)) return; clickAt(cursorX,cursorY); }
     private void scrollTop(){
         // Use both mechanisms, not one as a fallback for the other. Some

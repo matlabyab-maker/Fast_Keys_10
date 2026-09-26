@@ -144,10 +144,9 @@ public class FastKeyboardView extends View {
         Button resize = drawerButton("Resize / Float");
         Button mouse = drawerButton("موس صفحه وب");
         Button calculator = drawerButton("ماشین حساب");
-        Button command = drawerButton("Command");
 
         Button quickSettings = drawerButton("Quick Settings");
-        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,calculator,command,quickSettings};
+        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,calculator,quickSettings};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -174,7 +173,6 @@ public class FastKeyboardView extends View {
         resize.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showResizeFloatInfo));
         mouse.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showMouseControls));
         calculator.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showCalculator));
-        command.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showCommand));
         quickSettings.setOnClickListener(v -> { popup.dismiss(); service.requestQuickSettingsTiles(); });
 
         popup.showAtLocation(this, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, dp(6));
@@ -182,77 +180,9 @@ public class FastKeyboardView extends View {
         popup.setOnDismissListener(() -> drawerOpen = false);
     }
 
-    private void showCommand() {
-        LinearLayout root = new LinearLayout(service);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(10), dp(10), dp(10), dp(10));
-        root.setBackgroundColor(Color.WHITE);
 
-        final Button[] closeHolder = new Button[1];
-        addPopupHeader(root, "Command", closeHolder);
 
-        TextView info = new TextView(service);
-        info.setText("فرمان‌های سریع صفحه‌کلید");
-        info.setTextSize(16);
-        info.setTextColor(BLACK);
-        info.setGravity(Gravity.CENTER);
-        info.setPadding(dp(6), dp(6), dp(6), dp(10));
-        root.addView(info, new LinearLayout.LayoutParams(-1, -2));
 
-        String[][] commands = {
-                {"Copy All", "copyall", "Paste", "paste"},
-                {"Copy Screen", "copyscreen", "Cut", "cut"},
-                {"Undo", "undo", "Redo", "redo"},
-                {"Backspace", "backspace", "Enter", "enter"},
-                {"← Left", "left", "Right →", "right"},
-                {"↑ Up", "up", "↓ Down", "down"},
-                {"Space", "space", "Delete", "delete"}
-        };
-
-        for (String[] rowData : commands) {
-            LinearLayout row = new LinearLayout(service);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, dp(2), 0, dp(2));
-            for (int i = 0; i < rowData.length; i += 2) {
-                Button b = drawerButton(rowData[i]);
-                String command = rowData[i + 1];
-                b.setOnClickListener(v -> executeCommand(command));
-                row.addView(b, new LinearLayout.LayoutParams(0, dp(50), 1f));
-            }
-            root.addView(row, new LinearLayout.LayoutParams(-1, dp(54)));
-        }
-
-        final PopupWindow popup = new PopupWindow(root,
-                Math.min(dp(500), Math.max(dp(320), getWidth() - dp(16))),
-                WindowManager.LayoutParams.WRAP_CONTENT, false);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
-        popup.setTouchable(true);
-        popup.setFocusable(false);
-        popup.setOutsideTouchable(true);
-        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
-        popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
-        popup.setElevation(10f);
-        closeHolder[0].setOnClickListener(v -> popup.dismiss());
-        popup.showAtLocation(this, Gravity.CENTER, 0, 0);
-    }
-
-    private boolean executeCommand(String cmd) {
-        if (cmd == null || cmd.isEmpty()) return false;
-        if (cmd.equals("copy") || cmd.equals("copyall")) { service.copyAll(); return true; }
-        if (cmd.equals("copyscreen")) { service.copyScreen(); return true; }
-        if (cmd.equals("paste")) { service.paste(); return true; }
-        if (cmd.equals("cut")) { service.cut(); return true; }
-        if (cmd.equals("undo")) { service.undo(); return true; }
-        if (cmd.equals("redo")) { service.redo(); return true; }
-        if (cmd.equals("backspace") || cmd.equals("delete")) { service.backspace(); return true; }
-        if (cmd.equals("enter")) { service.enter(); return true; }
-        if (cmd.equals("left")) { service.moveCursorHorizontal(-1); return true; }
-        if (cmd.equals("right")) { service.moveCursorHorizontal(1); return true; }
-        if (cmd.equals("up")) { service.move(android.view.KeyEvent.KEYCODE_DPAD_UP); return true; }
-        if (cmd.equals("down")) { service.move(android.view.KeyEvent.KEYCODE_DPAD_DOWN); return true; }
-        if (cmd.equals("space")) { service.type(" "); return true; }
-        return false;
-    }
 
     private void showCalculator() {
         LinearLayout root = new LinearLayout(service);
@@ -867,9 +797,15 @@ public class FastKeyboardView extends View {
             float cw=weights[i]*scale;
             if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
             else if(i==11){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
+            else if(i==3 || i==4) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,13f);
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
+    }
+
+    private void keyToolbarText(Canvas c,float l,float t,float r,float b,String label,int color,float size){
+        key(c,l,t,r,b,"",color,false);
+        txt(c,label,(l+r)/2f,(t+b)/2f,size,color);
     }
 
     private void drawSuggestionRow(Canvas c,float top,float bottom){
@@ -1235,8 +1171,8 @@ public class FastKeyboardView extends View {
         if(row==0){
             // Normalized zones taken directly from the supplied reference image.
             int i=topToolbarIndex(x); if(i<0) return;
-            if(i==0) service.scrollToBottom();
-            else if(i==1) service.scrollToTop();
+            if(i==0) service.scrollOneStepDown();
+            else if(i==1) service.scrollOneStepUp();
             else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
             else if(i==3) service.copyAll();
             else if(i==4) service.copyScreen();
@@ -1295,15 +1231,21 @@ public class FastKeyboardView extends View {
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
         }
         if(row==6){
-            if(nx<0.09f){showSymbolPicker();return;}
-            if(nx<0.18f){englishMode=!englishMode;invalidate();return;}
-            if(nx<0.27f){showEmojiPicker();return;}
-            if(nx<0.57f){service.type(" ");return;}
-            if(nx<0.66f){service.type(".");return;}
-            if(nx<0.76f){service.moveCursorHorizontal(-1);return;}
-            if(nx<0.86f){service.moveCursorHorizontal(1);return;}
-            if(nx<0.93f){service.move(KeyEvent.KEYCODE_DPAD_UP);return;}
-            service.move(KeyEvent.KEYCODE_DPAD_DOWN);
+            float g=dp(4);
+            float[] widths={0.09f,0.09f,0.09f,0.32f,0.07f,0.10f,0.10f,0.075f,0.075f};
+            float total=0f; for(float q:widths) total+=q;
+            float usable=getWidth()-g*(widths.length+1), scale=usable/total, pos=g;
+            int bi=-1;
+            for(int i=0;i<widths.length;i++){ float cw=widths[i]*scale; if(x>=pos && x<=pos+cw){ bi=i; break; } pos+=cw+g; }
+            if(bi==0){showSymbolPicker();return;}
+            if(bi==1){englishMode=!englishMode;invalidate();return;}
+            if(bi==2){showEmojiPicker();return;}
+            if(bi==3){service.type(" ");return;}
+            if(bi==4){service.type(".");return;}
+            if(bi==5){service.moveCursorHorizontal(-1);return;}
+            if(bi==6){service.moveCursorHorizontal(1);return;}
+            if(bi==7){service.move(KeyEvent.KEYCODE_DPAD_UP);return;}
+            if(bi==8){service.move(KeyEvent.KEYCODE_DPAD_DOWN);return;}
         }
     }
 
@@ -1321,17 +1263,17 @@ public class FastKeyboardView extends View {
         root.addView(actions);
         final MousePadView pad=new MousePadView(service);
         root.addView(pad,new LinearLayout.LayoutParams(-1,0,1f));
-        LinearLayout clicks=new LinearLayout(service); clicks.setGravity(Gravity.CENTER); clicks.setPadding(dp(6),0,dp(6),0);
-        Button left=drawerButton("کلیک چپ"); left.setMinWidth(0); left.setMinimumWidth(0); left.setOnClickListener(v->FastKeyboardAccessibilityService.click(false));
-        Button right=drawerButton("کلیک راست"); right.setMinWidth(0); right.setMinimumWidth(0); right.setOnClickListener(v->FastKeyboardAccessibilityService.click(true));
-        LinearLayout.LayoutParams lpLeft=new LinearLayout.LayoutParams(0,dp(50),1f); lpLeft.setMargins(dp(4),0,dp(4),0);
-        LinearLayout.LayoutParams lpRight=new LinearLayout.LayoutParams(0,dp(50),1f); lpRight.setMargins(dp(4),0,dp(4),0);
+        LinearLayout clicks=new LinearLayout(service); clicks.setGravity(Gravity.CENTER); clicks.setPadding(dp(2),0,dp(2),0);
+        Button left=drawerButton("کلیک چپ"); left.setMinWidth(0); left.setMinimumWidth(0); left.setTextSize(13); left.setPadding(dp(2),0,dp(2),0); left.setOnClickListener(v->FastKeyboardAccessibilityService.click(false));
+        Button right=drawerButton("کلیک راست"); right.setMinWidth(0); right.setMinimumWidth(0); right.setTextSize(13); right.setPadding(dp(2),0,dp(2),0); right.setOnClickListener(v->FastKeyboardAccessibilityService.click(true));
+        LinearLayout.LayoutParams lpLeft=new LinearLayout.LayoutParams(0,dp(46),1f); lpLeft.setMargins(dp(2),0,dp(2),0);
+        LinearLayout.LayoutParams lpRight=new LinearLayout.LayoutParams(0,dp(46),1f); lpRight.setMargins(dp(2),0,dp(2),0);
         clicks.addView(left,lpLeft); clicks.addView(right,lpRight);
         root.addView(clicks);
         Button stop=drawerButton("خاموش کردن موس");
         stop.setOnClickListener(v -> FastKeyboardAccessibilityService.disable());
         root.addView(stop);
-        final PopupWindow popup=new PopupWindow(root,Math.min(dp(390),Math.max(dp(310),getWidth()-dp(12))),Math.min(dp(600),Math.max(dp(420),getHeight()-dp(12))),false);
+        final PopupWindow popup=new PopupWindow(root,Math.max(dp(280),getWidth()-dp(16)),Math.min(dp(600),Math.max(dp(420),getHeight()-dp(12))),false);
         popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE)); popup.setTouchable(true); popup.setFocusable(false); popup.setOutsideTouchable(true);
         popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED); popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING); popup.setElevation(10f);
         headerClose[0].setOnClickListener(v->popup.dismiss()); popup.showAtLocation(this,Gravity.CENTER,0,0);
@@ -1366,6 +1308,7 @@ public class FastKeyboardView extends View {
             Button b=new Button(service); b.setText(s); b.setTextSize(20); b.setAllCaps(false); b.setTextColor(Color.RED);
             GridLayout.LayoutParams lp=new GridLayout.LayoutParams(); lp.width=0; lp.height=dp(58); lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f); lp.setMargins(2,2,2,2); grid.addView(b,lp);
             b.setOnClickListener(v -> service.typeUnit(s));
+            setSymbolButtonRepeat(b,s);
         }
         String[] extraSymbols={"⌁","⌂","⌃","⌄","⌘","⌥","⌃","⇧","⇪","↩","↪","⤴","⤵","↶","↷","⟳","⟲","⟶","⟵","⟷","⤒","⤓","⇤","⇥","⇠","⇢","⇡","⇣","↖","↗","↘","↙","↺","↻","⏎","␣","⌫","⌦","⎋","⏎","⏪","⏩","⏮","⏭","⏯","⏸","⏹","⏺","⏱","⏲","⏰","♩","♪","♫","♬","♭","♯","𝄞","∞","∝","∂","∇","∫","∬","∭","∮","∴","∵","∀","∃","∄","∅","∈","∉","⊂","⊃","⊆","⊇","∪","∩","∧","∨","¬","⊕","⊗","⊙","⊥","∥","∠","∟","△","▲","▼","◆","◇","■","□","●","○","◉","◎","◌","◍","◐","◑","◒","◓","☑","☒","☐","✓","✔","✗","✘","✦","✧","✩","✪","✫","✬","✭","✮","✯","✰","☮","☯","☪","✡","☸","♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓","♀","♂","⚕","⚖","⚗","⚔","⚑","⚐","⚜","♻","☢","☣","⚠","⛔","🚫","🔴","🟠","🟡","🟢","🔵","🟣","⚫","⚪","🟤","🔶","🔷","🔺","🔻","◀","▶","⏫","⏬","⬅","➡","⬆","⬇","↔","↕","↯","⇐","⇒","⇑","⇓"};
         for(String s:extraSymbols){ Button b=new Button(service); b.setText(s); b.setTextSize(20); b.setAllCaps(false); b.setTextColor(Color.RED); GridLayout.LayoutParams lp=new GridLayout.LayoutParams(); lp.width=0; lp.height=dp(58); lp.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f); lp.setMargins(2,2,2,2); grid.addView(b,lp); b.setOnClickListener(v->service.typeUnit(s)); setSymbolButtonRepeat(b,s); }

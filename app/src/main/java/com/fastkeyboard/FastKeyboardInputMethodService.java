@@ -426,6 +426,16 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         else { InputConnection ic=getCurrentInputConnection(); if(ic!=null) ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_MOVE_END)); if(ic!=null) ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_MOVE_END)); }
     }
 
+    public void scrollOneStepUp() {
+        if (FastKeyboardAccessibilityService.isEnabled()) FastKeyboardAccessibilityService.scrollOneStepUp();
+        else { InputConnection ic=getCurrentInputConnection(); if(ic!=null){ ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_DPAD_UP)); ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_DPAD_UP)); } }
+    }
+
+    public void scrollOneStepDown() {
+        if (FastKeyboardAccessibilityService.isEnabled()) FastKeyboardAccessibilityService.scrollOneStepDown();
+        else { InputConnection ic=getCurrentInputConnection(); if(ic!=null){ ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_DPAD_DOWN)); ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_DPAD_DOWN)); } }
+    }
+
     public void escape() {
         InputConnection ic = getCurrentInputConnection();
         if (ic == null) return;
