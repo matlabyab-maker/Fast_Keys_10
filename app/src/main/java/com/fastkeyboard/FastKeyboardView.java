@@ -1376,6 +1376,7 @@ for(String s:moreSymbols){ Button b=new Button(service); b.setText(s); b.setText
         popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE)); popup.setTouchable(true); popup.setFocusable(false); popup.setOutsideTouchable(true); popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED); popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING); popup.setElevation(10f);
         headerClose[0].setOnClickListener(v->popup.dismiss());
         popup.showAtLocation(this,Gravity.CENTER,0,0);
+        });
 
     }
 
@@ -1422,5 +1423,3 @@ for(String s:moreSymbols){ Button b=new Button(service); b.setText(s); b.setText
         }
     }
 }
-        });
-
