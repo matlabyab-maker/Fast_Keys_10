@@ -792,12 +792,12 @@ public class FastKeyboardView extends View {
         float[] weights={0.061f,0.061f,0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.084f};
         float gapPx=dp(4), totalGap=gapPx*(weights.length-1), total=0; for(float q:weights) total+=q;
         float scale=(getWidth()-totalGap)/total, x=0;
-        String[] labels={"↓","↑","MIC","Copy All","Copy Screen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","Hidden"};
+        String[] labels={"↓","↑","MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","Hidden"};
         for(int i=0;i<labels.length;i++){
             float cw=weights[i]*scale;
             if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
             else if(i==11){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
-            else if(i==3 || i==4) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,13f);
+            else if(i==3 || i==4) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
@@ -1142,6 +1142,17 @@ public class FastKeyboardView extends View {
         return getRowAt(y)==2 && x>getWidth()*0.90f;
     }
 
+    // Hit-test uses exactly the same geometry as the drawn keyboard cells.
+    private int keyIndexAtExactDrawnCell(float x, float left, float right, int count){
+        float g=dp(4);
+        float cw=(right-left-g*(count-1))/count;
+        for(int i=0;i<count;i++){
+            float l=left+i*(cw+g), r=l+cw;
+            if(x>=l && x<=r) return i;
+        }
+        return -1;
+    }
+
     private int indexForEqualRow(float x, float left, float right, int count){
         float g=dp(4);
         float cw=(right-left-g*(count-1))/count;
@@ -1171,8 +1182,8 @@ public class FastKeyboardView extends View {
         if(row==0){
             // Normalized zones taken directly from the supplied reference image.
             int i=topToolbarIndex(x); if(i<0) return;
-            if(i==0) service.scrollOneStepDown();
-            else if(i==1) service.scrollOneStepUp();
+            if(i==0) service.scrollToBottom();
+            else if(i==1) service.scrollToTop();
             else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
             else if(i==3) service.copyAll();
             else if(i==4) service.copyScreen();
@@ -1210,14 +1221,14 @@ public class FastKeyboardView extends View {
         if(row==3){
             if(nx>0.91f){service.enter();return;}
             String[] keys=englishMode?new String[]{"q","w","e","r","t","y","u","i","o","p","[","]","\\"}:new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ","پ"};
-            int i=indexForEqualRow(x,dp(4),getWidth()-getWidth()*0.087f-dp(4),keys.length);
+            int i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
             if(i<0 || i>=keys.length) return;
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
         }
         if(row==4){
             if(nx>0.91f){service.enter();return;}
             String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'",""}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"};
-            int i=indexForEqualRow(x,dp(4),getWidth()-getWidth()*0.087f-dp(4),keys.length);
+            int i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
             if(i<0 || i>=keys.length) return;
             if(i==0){caps=!caps; if(caps){ capsBlinkOn=true; handler.removeCallbacks(capsBlink); handler.postDelayed(capsBlink,420); } else { capsBlinkOn=false; handler.removeCallbacks(capsBlink); } invalidate();return;}
             if(englishMode && keys[i].isEmpty()) return;
@@ -1225,7 +1236,7 @@ public class FastKeyboardView extends View {
         }
         if(row==5){
             String[] keys=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?","",""}:new String[]{"ش","س","ی","ک","ب","ل","ا","ت","ن","م","و","ء","؟","،"};
-            int i=indexForEqualRow(x,dp(4),getWidth()-dp(4),keys.length);
+            int i=keyIndexAtExactDrawnCell(x,dp(4),getWidth()-dp(4),keys.length);
             if(i<0 || i>=keys.length) return;
             if(englishMode && keys[i].isEmpty()) return;
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
@@ -1263,11 +1274,11 @@ public class FastKeyboardView extends View {
         root.addView(actions);
         final MousePadView pad=new MousePadView(service);
         root.addView(pad,new LinearLayout.LayoutParams(-1,0,1f));
-        LinearLayout clicks=new LinearLayout(service); clicks.setGravity(Gravity.CENTER); clicks.setPadding(dp(2),0,dp(2),0);
-        Button left=drawerButton("کلیک چپ"); left.setMinWidth(0); left.setMinimumWidth(0); left.setTextSize(13); left.setPadding(dp(2),0,dp(2),0); left.setOnClickListener(v->FastKeyboardAccessibilityService.click(false));
-        Button right=drawerButton("کلیک راست"); right.setMinWidth(0); right.setMinimumWidth(0); right.setTextSize(13); right.setPadding(dp(2),0,dp(2),0); right.setOnClickListener(v->FastKeyboardAccessibilityService.click(true));
-        LinearLayout.LayoutParams lpLeft=new LinearLayout.LayoutParams(0,dp(46),1f); lpLeft.setMargins(dp(2),0,dp(2),0);
-        LinearLayout.LayoutParams lpRight=new LinearLayout.LayoutParams(0,dp(46),1f); lpRight.setMargins(dp(2),0,dp(2),0);
+        LinearLayout clicks=new LinearLayout(service); clicks.setOrientation(LinearLayout.HORIZONTAL); clicks.setGravity(Gravity.CENTER); clicks.setPadding(0,0,0,0); clicks.setClipChildren(true); clicks.setClipToPadding(true);
+        Button left=drawerButton("کلیک چپ"); left.setMinWidth(0); left.setMinimumWidth(0); left.setTextSize(12); left.setPadding(0,0,0,0); left.setEllipsize(android.text.TextUtils.TruncateAt.END); left.setOnClickListener(v->FastKeyboardAccessibilityService.click(false));
+        Button right=drawerButton("کلیک راست"); right.setMinWidth(0); right.setMinimumWidth(0); right.setTextSize(12); right.setPadding(0,0,0,0); right.setEllipsize(android.text.TextUtils.TruncateAt.END); right.setOnClickListener(v->FastKeyboardAccessibilityService.click(true));
+        LinearLayout.LayoutParams lpLeft=new LinearLayout.LayoutParams(0,dp(46),1f); lpLeft.setMargins(0,0,dp(2),0);
+        LinearLayout.LayoutParams lpRight=new LinearLayout.LayoutParams(0,dp(46),1f); lpRight.setMargins(dp(2),0,0,0);
         clicks.addView(left,lpLeft); clicks.addView(right,lpRight);
         root.addView(clicks);
         Button stop=drawerButton("خاموش کردن موس");

@@ -86,34 +86,21 @@ public class FastKeyboardAccessibilityService extends AccessibilityService {
     }
     private void tap(boolean right){ if(right){longPress(cursorX,cursorY);return;} if(clickNodeAt(getRootInActiveWindow(),cursorX,cursorY)) return; clickAt(cursorX,cursorY); }
     private void scrollTop(){
-        // Use both mechanisms, not one as a fallback for the other. Some
-        // browsers expose a scrollable node but ignore ACTION_SCROLL_BACKWARD,
-        // while WebView/editor pages may only respond to a real finger swipe.
-        final int[] pass={0};
-        final Runnable[] runner=new Runnable[1];
-        runner[0]=() -> {
-            if(pass[0]++ >= 60) return;
-            AccessibilityNodeInfo root=getRootInActiveWindow();
-            scrollNodes(root);
-            // Keep the swipe inside the visible content area so the keyboard
-            // itself is not the target. A downward finger movement moves the
-            // document toward its beginning.
-            swipeDownToTop(() -> handler.postDelayed(runner[0],160));
-        };
-        handler.post(runner[0]);
+        // Jump toward the beginning without the visible one-row-at-a-time delay.
+        AccessibilityNodeInfo root=getRootInActiveWindow();
+        for(int i=0;i<60;i++){
+            if(!scrollNodes(root=getRootInActiveWindow())) break;
+        }
+        swipeDownToTop(() -> {});
     }
 
-
     private void scrollBottom(){
-        final int[] pass={0};
-        final Runnable[] runner=new Runnable[1];
-        runner[0]=() -> {
-            if(pass[0]++ >= 60) return;
-            AccessibilityNodeInfo root=getRootInActiveWindow();
-            scrollNodesForward(root);
-            swipeUpToBottom(() -> handler.postDelayed(runner[0],120));
-        };
-        handler.post(runner[0]);
+        // Jump toward the end without the visible one-row-at-a-time delay.
+        AccessibilityNodeInfo root=getRootInActiveWindow();
+        for(int i=0;i<60;i++){
+            if(!scrollNodesForward(root=getRootInActiveWindow())) break;
+        }
+        swipeUpToBottom(() -> {});
     }
 
     private void swipeUpToBottom(final Runnable done){
