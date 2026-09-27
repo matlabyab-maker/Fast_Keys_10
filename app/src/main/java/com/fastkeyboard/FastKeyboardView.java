@@ -24,21 +24,6 @@ public class FastKeyboardView extends View {
     private boolean caps = false;
     private Runnable repeat;
     private float repeatX, repeatY;
-    // User-controlled keyboard resize mode. Height is persisted locally.
-    private boolean resizeMode = false;
-    private boolean resizingKeyboard = false;
-    private float resizeStartX = 0f;
-    private float resizeStartY = 0f;
-    private int resizeStartWidth = 0;
-    private int resizeStartHeight = 0;
-    // Resize grip direction: -1 = left/top, 0 = none, 1 = right/bottom.
-    private int resizeEdgeX = 0;
-    private int resizeEdgeY = 0;
-    private final int minWidthDp = 240;
-    private final int maxWidthDp = 900;
-    private final int defaultHeightDp = 320;
-    private final int minHeightDp = 220;
-    private final int maxHeightDp = 620;
     // Visual key-press light; this changes only the pressed-key appearance.
     private boolean pressGlow = false;
     private boolean pressHeld = false;
@@ -63,7 +48,130 @@ public class FastKeyboardView extends View {
         {"تایپ","تایپی","تایپ کردن"},{"کلمه","کلمات","کلمه‌های"}
     };
     private static final String[] EXTRA_WORDS = (
-        "آب آدم آدمی آسمان امروز امشب آن آنها آنجا آیا اگر اکنون اینجا ای ایران با بار باران باشد باشم باشید باشی باشند باید برای بعد بدون بین به بهتر بود بودن تا تازه تمام تماماً تاریخ خانه حال حالت حتی هر همه هم همین همینجا هنوز همراه هیچ یکدیگر یا یعنی یاد یک یکی من ما مادر پدر دوست دوستان مردم مرد زن زنان بچه کودک خانواده کار کارها کاری کتاب کتابخانه مدرسه دانشگاه دانش دانشجو معلم استاد برنامه پروژه فایل فایل‌ها پوشه گوشی تلفن رایانه کامپیوتر اینترنت وب صفحه سایت مرورگر کیبورد کلید دکمه برنامه‌نویسی کد ساخت ساختن انجام شد می‌دهم می‌توانم می‌شود می‌خواهم می‌خواهیم می‌داند می‌دانم می‌گویم می‌گوید می‌روم می‌آیم می‌خورم می‌نویسم می‌خوانم می‌بینم می‌کنم می‌کند خوب خیلی خوبه بد بزرگ کوچک جدید قدیم سریع آرام درست غلط مهم لازم ممکن آماده مشکل مشکلات سوال پاسخ جواب دلیل علت روش راه راهنما کمک لطفاً لطفا ممنون متشکرم سلامتی صبح ظهر شب روز هفته ماه سال زمان وقت الان بعداً دوباره همیشه هرگز گاهی معمولاً اول آخر بالا پایین داخل بیرون کنار مقابل روی زیر میان وسط نزدیک دور جلو عقب چپ راست اتاق در پنجره میز صندلی غذا نان چای قهوه میوه سیب پرتقال قلم کاغذ ماشین خودرو اتوبوس قطار هواپیما سفر جاده شهر روستا کشور دنیا زمین دریا کوه آفتاب هوا برف باد سرد گرم تابستان زمستان بهار پاییز رنگ سفید سیاه قرمز سبز آبی زرد شروع شروعی پایان کردن ادامه بده توقف حرکت رفتن آمدن گرفتن دادن گذاشتن برداشتن خرید فروش قیمت پول حساب شماره نام اسم متن جمله حرف حروف زبان فارسی انگلیسی عربی معنی ترجمه توضیح مثال تصویر عکس فیلم صدا ویدیو موسیقی خبر اطلاعات نتیجه انتخاب گزینه نسخه جدیدترین قدیمی ترین تنظیم تنظیمات تغییر اندازه بزرگتر کوچکتر باز بسته بازکردن بستن نمایش مخفی ذخیره حذف پاک ارسال دریافت دانلود آپلود نصب اجرا کاربردی بسیار ویرانگر که بیشتر ها را کرد و از حد عادی خارج زودتر بله کلمات مورد استفاده پیامهایی تو دادم سطر شکل لیست بیار فونت نستعلیق بخش کشویی قرار اما بگویم اینکه سر جای خودشان چیده نشده اند بعضی هایشان مانند اینتر این یکم فاصله دک commit repository دار گذشته جریان هستی Fast Keyboard خود اختصاصی تاریخچه اش است منظورم آخرین مرحله کلیپ رنگی کن بیاور کولر گازی های جنرال نسل قبل درها برایشان کاملا بست داشته همان هوای آزاد صحنه فریمهای شبیه تکراری آنهایی آموزش کافی هستند پخش نکرد نه کیفیتش اصلی کانورت نکن original حالا تمیز Radio جایگزین نباید چون احتمالا موارد نمی توانم خودم پیدا کنم هوش مصنوعی یکدست می شود سبک وزن تر کارکرد موضوعات مشخص محدود ساخته شوند تبدیل حجم کیفیت ویدئو خراب نشود اولیه کودکی معرفی کردم خودت mb کدک منیجر ماهوارهای بالای اورست آنلاین حاضر خواهم دیواره کوهها میخواهم نمای عمودی صخره Android fast radio دهیم اصلاح خطا ویرایشگر پیشنهادی درون اضافه"
+        "درمان پزشکی سلامت دارو دارویی داروها پزشک پزشکان بیمار بیماران بیماری بیماریها درمانگر پرستار" +
+        "پرستاری بیمارستان درمانگاه کلینیک مطب نسخه داروخانه داروساز داروسازی قرص کپسول شربت آمپول تزریق" +
+        "واکسن واکسیناسیون آنتیبیوتیک مسکن تب درد سردرد میگرن سرفه سرماخوردگی آنفلوآنزا عفونت التهاب حساسیت" +
+        "آلرژی فشارخون قند خون دیابت قلب مغز ریه کلیه کبد معده روده پوست چشم گوش بینی دندان دهان استخوان" +
+        "مفصل عضله آزمایش آزمایشگاه تشخیص علائم پیشگیری اورژانس جراحی عمل مراقبت روان تغذیه ویتامین مکمل" +
+        "پروتئین رژیم غذایی کالری خواب ورزش توانبخشی فیزیوتراپی روانشناسی روانپزشکی استرس اضطراب افسردگی" +
+        "حافظه سرطان تومور ویروس باکتری قارچ کرونا کووید اکسیژن نبض فشار دما تبخال زخم سوختگی شکستگی سرگیجه" +
+        "تهوع استفراغ اسهال یبوست خونریزی دردناک سالم سالمند کودک نوزاد بارداری باردار زایمان مادر جنین \"" +
+        "\"فناوری فناوری اطلاعات تکنولوژی کامپیوتر رایانه لپتاپ لپتاپها دسکتاپ سرور شبکه اینترنت وب سایت" +
+        "وبسایت مرورگر موتور جستجو گوگل بینگ فایرفاکس کروم اندروید ویندوز لینوکس مک او اس آیفون آیپد اپل" +
+        "سامسونگ شیائومی هواوی نوکیا پیکسل وانپلاس سونی ال جی ایسوس لنوو دل اچ پی ایسر گیگابایت ترابایت" +
+        "مگابایت کیلوبایت پردازنده CPU GPU RAM ROM SSD HDD USB HDMI بلوتوث وایفای WiFi 5G 4G LTE مودم روتر" +
+        "سوئیچ کابل شارژر باتری نمایشگر صفحه نمایش دوربین سنسور نرم افزار سخت سیستم عامل اپلیکیشن برنامه" +
+        "نویسی کدنویسی توسعه دهنده مهندسی داده پایگاه دیتابیس SQL API SDK IDE کامپایلر مفسر دیباگ دیباگر خطا" +
+        "باگ تست واحد یونیت ورژن انتشار ریلیز مخزن repository گیت Git GitHub GitLab commit push pull branch" +
+        "merge clone fork workflow action Gradle Maven Java Kotlin Python C C++ JavaScript TypeScript HTML" +
+        "CSS XML JSON YAML HTTP HTTPS URL DNS IP TCP UDP SSH SSL TLS Linux Android Studio Visual Code VSCode" +
+        "IntelliJ Eclipse Flutter React Native NodeJS npm package library framework class object method" +
+        "function variable constant array list map string integer boolean null true false public private" +
+        "protected static final override interface import export return if else switch case for while try" +
+        "catch exception activity service view layout widget manifest resource drawable build apk aab debug" +
+        "release \"سیاسی سیاست دولت حکومت مجلس وزارت وزیر رئیس جمهور ریاست جمهوری پارلمان انتخابات رای قانون" +
+        "قانونگذاری نماینده نمایندگان حزب سیاستمدار سیاستمداران کشور روابط بین الملل دیپلماسی دیپلمات سفارت" +
+        "سفیر سازمان ملل متحد شورای امنیت تحریم اقتصاد بودجه مالیات دفاع ارتش نیروهای مسلح پلیس اساسی حقوق" +
+        "شهروندی جامعه مدنی آزادی عدالت دادگاه قاضی دادستان پرونده محلی فدرال پادشاهی نخست \"مذهبی دین ادیان" +
+        "اسلام مسلمان قرآن کریم حدیث احادیث دعا نماز روزه حج عمره زکات صدقه مسجد محراب منبر امام پیامبر" +
+        "پیامبران رسول خدا حضرت محمد علی فاطمه حسن حسین مهدی شیعه سنی اهل سنت روحانی عالم فقیه مرجع تقلید" +
+        "تفسیر سوره آیه کعبه مکه مدینه کربلا نجف عاشورا محرم رمضان عید فطر قربان اذان وضو تیمم قبله \"جنگ" +
+        "جنگی نبرد سرباز فرمانده ژنرال دریادار نیروی هوایی دریایی تانک توپ توپخانه موشک هواپیما جنگنده بمب" +
+        "افکن ناو زیردریایی کشتی سلاح مهمات جبهه خط مقدم عملیات حمله پیروزی شکست آتش بس صلح پیمان معاهده" +
+        "اشغال مقاومت نیرو دشمن تاریخ نظامی استراتژی تاکتیک جاسوسی جاسوس پناهگاه سنگر لشکر گردان هنگ تیپ" +
+        "لشکرکشی جهانی اول جنگ دوم اولی دومی WWI WW1 WWII WW2 WorldWar World War One Two تاریخی باستان" +
+        "باستانی قرون وسطی قرن انقلاب امپراتوری پادشاه شاه ملکه سلطنت روم یونان ایران پارس عثمانی بریتانیا" +
+        "فرانسه آلمان روسیه شوروی آمریکا ژاپن ایتالیا اتریش مجارستان لهستان چکسلواکی نازی فاشیسم متفقین محور" +
+        "هیتلر چرچیل استالین روزولت ترومن موسولینی پرل هاربر نورماندی نرماندی استالینگراد برلین مسکو لندن" +
+        "پاریس ورشو هیروشیما ناکازاکی \"برنامه برنامه‌نویسی الگوریتم ساختار متغیر تابع کلاس شیء رشته آرایه" +
+        "لیست مجموعه دیکشنری حلقه شرط شرطی ورودی خروجی خطایابی اشکال زدایی تستر مستندات مستندسازی کامنت" +
+        "کامپایل اجرا سورس کد منبع پروژه طراحی رابط کاربری UI تجربه UX فرانت اند بک فول استک اپ موبایل" +
+        "کلاینت درخواست پاسخ ریکوئست ریسپانس استثنا ارور error warning هشدار log لاگ terminal ترمینال shell" +
+        "bash powershell script اسکریپت thread process پردازش memory cache کش queue صف stack پشته recursion" +
+        "بازگشتی async همزمانی concurrency parallel موازی encryption رمزنگاری hash هش token توکن" +
+        "authentication احراز هویت authorization مجوز permission دسترسی رمز عبور password username نام" +
+        "\"ماشین خودرو خودروها اتومبیل سواری وانت کامیون اتوبوس مینی بوس تاکسی موتورسیکلت دوچرخه قطار مترو" +
+        "هلیکوپتر نیسان تویوتا لکسوس هوندا مزدا سوبارو میتسوبیشی سوزوکی کیا هیوندای جنسیس فورد شورولت" +
+        "کادیلاک جیپ دوج تسلا مرسدس بنز بی ام و BMW آئودی فولکس واگن پورشه فراری لامبورگینی مازراتی ولوو رنو" +
+        "پژو سیتروئن فیات بوگاتی لارن مک‌لارن رولزرویس بنتلی استون مارتین لندرور رنجروور سانتافه توسان" +
+        "النترا سوناتا سمند دنا پراید تیبا شاهین \"گوشی تلفن هوشمند تبلت iPhone iOS Galaxy گلکسی S24 S25 A55" +
+        "A35 Note Pixel Xperia Redmi Poco Mi Xiaomi Huawei Honor OnePlus Nokia Motorola Asus ROG Zenfone" +
+        "\"لباس پوشاک پیراهن شلوار کت کاپشن پالتو مانتو روسری شال کلاه کفش کتانی بوت جوراب لباس زیر تی شرت" +
+        "تی‌شرت ژاکت سویشرت هودی دامن مجلسی ورزشی کیف کوله پشتی چمدان کمربند دستکش عینک ساعت پارچه پنبه پشم" +
+        "ابریشم جین چرم اندازه سایز کوچک متوسط بزرگ XL XXL \"انسان آدم انسانها شخص افراد فرد مردم مرد زن بچه" +
+        "نوجوان جوان بزرگسال اسم خانوادگی خانواده پدر برادر خواهر پسر دختر دوست همکار مدیر کارمند معلم استاد" +
+        "دانشجو دانش آموز مهندس نویسنده خبرنگار هنرمند بازیگر کارگردان ورزشکار راننده خلبان پژوهشگر دانشمند" +
+        "\"حیوان حیوانات سگ گربه اسب گاو گوسفند بز شتر الاغ فیل شیر ببر پلنگ یوز خرس گرگ روباه خرگوش موش" +
+        "میمون گوریل شامپانزه زرافه فلامینگو طوطی کبوتر عقاب جغد کلاغ مرغ خروس اردک غاز ماهی کوسه نهنگ دلفین" +
+        "لاکپشت مار سوسمار تمساح قورباغه پروانه زنبور مورچه عنکبوت عقرب \"شهر شهرها کشورها جهان دنیا تهران" +
+        "مشهد اصفهان شیراز تبریز قم کرج اهواز رشت ارومیه یزد کرمان همدان بندرعباس ساری زاهدان اردبیل" +
+        "استانبول آنکارا بغداد دمشق بیروت ریاض دبی ابوظبی دوحه کویت دهلی بمبئی پکن شانگهای توکیو سئول بانکوک" +
+        "سنگاپور جاکارتا سیدنی ملبورن سن پترزبورگ رم مادرید بارسلونا لیسبون آمستردام بروکسل وین زوریخ ژنو" +
+        "پراگ آتن قاهره اسکندریه کیپ تاون نایروبی نیویورک واشنگتن لس آنجلس سان فرانسیسکو شیکاگو تورنتو" +
+        "ونکوور مکزیکوسیتی ریو سائوپائولو بوئنوس آیرس \"کشورها عراق سوریه لبنان اردن عربستان امارات قطر عمان" +
+        "بحرین ترکیه آذربایجان ارمنستان گرجستان افغانستان پاکستان هند چین کره جنوبی شمالی اوکراین بلاروس" +
+        "قزاقستان ازبکستان ترکمنستان تاجیکستان کانادا مکزیک برزیل آرژانتین شیلی پرو کلمبیا انگلیس اسپانیا" +
+        "پرتغال هلند بلژیک سوئیس چک سوئد نروژ دانمارک فنلاند ایسلند استرالیا نیوزیلند مصر آفریقای مراکش" +
+        "الجزایر تونس لیبی نیجریه کنیا \"جاهای دیدنی مکان گردشگری موزه کاخ قلعه برج میدان پل کلیسا معبد" +
+        "زیارتگاه دانشگاه کتابخانه پارک باغ شهربازی ورزشگاه فرودگاه ایستگاه راه آهن بندر ساحل جزیره دریاچه" +
+        "رودخانه آبشار کوه قله غار بیابان جنگل نقش تخت جمشید پاسارگاد ارگ بم میلاد گلستان حرم رضا معصومه ملی" +
+        "لوور ایفل کلیسای نوتردام بیگ بن آکروپولیس کولوسئوم واتیکان تاج محل دیوار شهر ممنوعه فوجی هالیوود" +
+        "مجسمه سفید دیزنی لند \"کتاب نوشتن نویسندگان داستان رمان شعر شاعر ادبیات مقاله مجله روزنامه فصل بخش" +
+        "عنوان متن پاراگراف جمله کلمه واژه حرف حروف نقطه ویرگول علامت سوال تعجب نقل قول پرانتز فاصله تایپ" +
+        "کردن ویرایشگر ویرایش ذخیره چاپ پرینت کپی پیست برش چسباندن انتخاب همه جایگزینی پیدا بازگشت برگشت جلو" +
+        "عقب کلید قلم مداد دفتر یادداشت \"گفتگو پیشنهاد اصلاح ها پیشنهادی درون اضافه کن سلام سلامتی سیاسی" +
+        "مذهبی ماشین گوشی انسان حیوان کتاب استثنای غیر بغیر از به که گروه دست دسته رسته راستای بگیر بدهی" +
+        "بدهیم بدهد اینها ایجاد کردیم گذاشتم گذاشتیم ساختم ساخت ساختیم پوشه های رنگها امتحان بیاریم خطها سطر" +
+        "سطرها شماره تیم دگرگون سازی زیرین پایین ترین بالاترین گم شد نشود شاید ممکنه امکان داریم داشت زشت" +
+        "زیبا تند سریع ارزش گفتگوی گفتگو یمان هر هرچه هست نیست پیشرفته حرفه ای شبیه ردیف ردیفهای چند چندمین" +
+        "هرچند با اینکه تا چرا ؟ ،\" \"لیست چکار کنم بدرد استفاده ضروری ضرورت قابل طول عرض یکسان ناهمسان" +
+        "نابرابر نابرابری دقیقا دقیق دقت قرار بده پنهان ظاهر مشترک متفاوت مختلف هم دیگر دیگری همدیگر یکدیگر" +
+        "بلد شما تو اینکار باهم بدون بگذار بگذاریم کمک کمکت مخفی نگهدار نگه ثابت باش باشد باشیم نباید نباش" +
+        "نباشیم نباشد عکس عکسها عکسهای را الا مگر Hidden Hide Yes Inter Enter Rest Go اینترنتی جا جایگذاری" +
+        "جلوتر تر میان بود بودند ببین بررسی پیش نمودار هرم لایت نور تکسچر تکسچرهای پولیگان شب تاریک روز روشن" +
+        "تیره ماندن بماند بساز در اینطرف سمت سمتهای صاف\" فلوات Float Fast Fast_ -maker _maker origin تیک" +
+        "لینک تکست رند رندر رول Wheel شان یش گود کلفت سوم چهارم اولین بار درهمی درهم برهم تداخل منظم مناسب" +
+        "بدترین خوب بد راست درست قرمز سبز زرد سورمه قهوه تنها فقط عمود عمودی افق افقی مچ پیچ مارپیچ درخت" +
+        "کاراکتر کدگذاری کدخوانی بیلد Build Debug Log Source Repository ریپازیتوری گیتهاب گیتلب Commit پوش" +
+        "Push Pull PullRequest Branch شاخه Merge ادغام Fork کلون Clone Release Version بسته Package Library" +
+        "فریمورک Framework ادیتور Editor Terminal کنسول Console دستور Command Script ماژول Module Class متد" +
+        "Method Function Variable Constant String عدد Integer Double Boolean Array List Set نقشه Map شی" +
+        "Object وراثت Inheritance پلی مورفیسم Polymorphism Interface انتزاع Abstraction کپسوله Encapsulation" +
+        "ارث بری Algorithm Data Database NoSQL Regex عبارت کنترل Test UnitTest یکپارچه IntegrationTest" +
+        "اتوماسیون Automation وابستگی Dependency تنظیمات Configuration پیکربندی BuildConfig بازی گیم Game" +
+        "بازیکن Player Enemy باس Boss NPC شخصیت مرحله Level محیط Environment انیمیشن Animation حرکت رفتن" +
+        "دویدن پرش شلیک تیراندازی اسلحه زره جان امتیاز Score سکه Coin قدرت Power مأموریت Mission هدف Quest" +
+        "پاداش Reward شروع پایان بارگذاری Save Load منو Menu دکمه Button کنترلر Controller جوی استیک" +
+        "Joystick Gamepad فیزیک Physics برخورد Collision GameEngine Unity Unreal Godot Sprite Texture Shader" +
+        "Material مدل سه بعدی دو 2D 3D مسافرکشی ون مینی‌بوس پهپاد بمب‌افکن ترابری شناسایی رهگیر زرهی نفربر" +
+        "قایق آفرود سدان هاچبک کوپه کانورتیبل استیشن شاسی بلند SUV کراس‌اور ون‌کمپر کرایسلر موستانگ کامارو" +
+        "کوروت فولکس‌واگن بی‌ام‌و اوپل دوو زانتیا پیکان جگوار غیرجنگی قدیمی جدید کلاسیک هواپیمای مسافربری" +
+        "باری کابین باند پرواز برخاست فرود اوج‌گیری اضطراری ناوبری رادار توربین جت ملخ بال دم ارابه چرخ سوخت" +
+        "مسیر پروازی ارتفاع سرعت راه‌آهن لوکوموتیو لکوموتیو مسافری سکو ریل ترمز لوکوموتیوران بلیت مسافر تونل" +
+        "گیربکس جعبه دنده کلاچ فرمان لاستیک تایر دینام استارت رادیاتور فن روغن فیلتر شمع انژکتور کاربراتور" +
+        "اگزوز فنر تعلیق جلوبندی بدنه چراغ راهنما آینه بغل داشبورد کیلومترشمار آمپر بنزین گاز پدال تعمیر" +
+        "تعمیرکار مکانیک سرویس پنچر پنچرگیری یدک‌کش کیک شیرینی غذا پخت‌وپز آشپزی نان خمیر آرد شکر نمک" +
+        "تخم‌مرغ پنیر خامه شکلات کاکائو وانیل دارچین زعفران عسل مربا ژله بستنی شکلاتی وانیلی اسفنجی خامه‌ای" +
+        "میوه‌ای هویج چیزکیک براونی کوکی کلوچه پای تارت پیتزا پاستا ماکارونی برنج خورش سوپ آش کباب گوشت سبزی" +
+        "سالاد ساندویچ همبرگر سیب‌زمینی ابزار فر اجاق مایکروویو همزن مخلوط‌کن غذاساز قابلمه تابه ماهیتابه" +
+        "دیگ زودپز بخارپز چاقو رنده پوست‌کن تخته پیمانه ترازو قالب وردنه لیسک قاشق چنگال ملاقه انبر برشکاری" +
+        "جوشکاری جوشکار دستگاه جوش اینورتر الکترود سیم ماسک ایمنی سنگ فرز اره برقی دستی دریل مته پیچ‌گوشتی" +
+        "آچار انبردست گازبر کاتر تیغ کارگاه نجاری نجار چوب الوار MDF نئوپان میخ چسب سمباده گیره کارگاهی متر" +
+        "تراز فوتبال فوتسال بسکتبال والیبال تنیس پینگ‌پنگ شنا بوکس رزمی دوچرخه‌سواری کوهنوردی راکت تور" +
+        "دروازه داور مربی مسابقه لیگ قهرمانی تمرین بدن‌سازی باشگاه استخر تفریح سرگرمی سینما تئاتر سفر اردو" +
+        "کمپ مغازه فروشگاه سوپرمارکت نانوایی قصابی رستوران کافه کتابفروشی تعمیرگاه بازار پاساژ فروشنده مشتری" +
+        "صندوق انبار اداره شرکت کارخانه بانک بیمه مدرسه آموزشگاه کلانتری آتش‌نشانی اداری منشی حسابدار کارگر" +
+        "پیک پستچی آرایشگر خیاط نانوا آشپز کشاورز باغبان بنا نقاش برقکار لوله‌کش نظافتچی نگهبان وکیل مترجم" +
+        "عکاس طراح سرقت دزدی سارق دزد کلاهبرداری کلاه‌برداری کلاهبردار تقلب فریب جعل جعلی فیشینگ فیشینگینگ" +
+        "هک هکر نفوذ حساب پیام فروش مالی پول‌شویی اختلاس رشوه حقوقی قانون‌گذاری متهم شاکی شاهد حکم رأی" +
+        "دادخواست شکایت اعتراض تجدیدنظر بازداشت زندان وثیقه جرم مجازات مدرک سند قرارداد مالکیت طلاق ازدواج" +
+        "کیفری دادسرا مأمور افسر بازپرس تحقیقات پلیسی گزارش صحنه اثر انگشت مداربسته گشت بازرسی دستگیری تعقیب" +
+        "زندگی روزمره روزانه کار خانه خرید پول قیمت هزینه زمان امروز فردا دیروز صبح ظهر عصر هفته ماه سال" +
+        "تعطیلات ملاقات تماس ایمیل لپ‌تاپ نرم‌افزار سخت‌افزار فایل تصویر ویدیو صدا موسیقی فیلم خبر آموزش" +
+        "الکترونیک الکتریکی برق مدار برد الکترونیکی قطعه خازن دیود ترانزیستور رله فیوز سوکت پریز آداپتور" +
+        "ولتاژ جریان وات توان فرکانس میکروکنترلر صفحه‌نمایش LED LCD OLED بلندگو میکروفون ماشین‌آلات تجهیزات" +
+        "مانیتور کیبورد موس چاپگر اسکنر فلش مموری هارد کارت وای‌فای"
+        "دارد داد دا باید انگار نه بله هرگز انکار دور دورتر نزدیک گریز کنار درونش معرض دید دیدن پدید پدیدار نکته بلکه اما ولی چیدمان بچین نگذار ننویس نکش نبر توجه پهن باریک ریز درشت گرد مکعب دایره مربع نیمه نف ضرب ضربدر تقسیم تفاهم المان کوبل رچ نمره معادل گپ حرفها حرفهای تک یک جفت هرکدام هیچکدام تقریبا نمود نماد نشان نشانگر چهارتا دوتا پنج شش شنید شنیدن حس احساس مرطوب خشک صفر خالی تهی جور ناجور نامنظم نترس تلویزیون رادیو TV Radio Random Textures Video Tool Keyboard Fit [ ] سبک سنگین حذف پاک" +
     ).split(" ");
     private final int BG=Color.rgb(239,238,232), DEFAULT_KEY=Color.rgb(250,249,244),
             BLUE=Color.rgb(20,112,235), NAVY=Color.rgb(18,38,78), NUMBER_BROWN=Color.rgb(116,58,24), BLACK=Color.rgb(25,29,34),
@@ -92,7 +200,6 @@ public class FastKeyboardView extends View {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         int savedAlpha = service.getSharedPreferences("fast_keyboard_settings", 0).getInt("keyboard_alpha", 100);
         setAlpha(Math.max(1, Math.min(100, savedAlpha)) / 100f);
-        post(() -> applyKeyboardHeightDp(savedKeyboardHeightDp()));
     }
 
     private void txt(Canvas c,String s,float x,float y,float size,int color){
@@ -180,12 +287,11 @@ public class FastKeyboardView extends View {
         Button arabic = drawerButton("حرکت‌ها و صداهای عربی");
         Button history = drawerButton("تاریخچه کلیپ‌بورد (۱۰۰)");
         Button magnifierButton = drawerButton("ذره‌بین");
-        Button resize = drawerButton("Resize / Float");
         Button mouse = drawerButton("موس صفحه وب");
         Button calculator = drawerButton("ماشین حساب");
 
         Button quickSettings = drawerButton("Quick Settings");
-        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,resize,mouse,calculator,quickSettings};
+        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,mouse,calculator,quickSettings};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -209,7 +315,6 @@ public class FastKeyboardView extends View {
             popup.dismiss();
             service.launchScreenMagnifier();
         });
-        resize.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showResizeFloatInfo));
         mouse.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showMouseControls));
         calculator.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showCalculator));
         quickSettings.setOnClickListener(v -> { popup.dismiss(); service.requestQuickSettingsTiles(); });
@@ -382,131 +487,6 @@ public class FastKeyboardView extends View {
 
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
 
-    private void applyKeyboardSizePx(int widthPx, int heightPx) {
-        android.view.ViewGroup.LayoutParams lp = getLayoutParams();
-        if (lp == null) lp = new android.view.ViewGroup.LayoutParams(widthPx, heightPx);
-        lp.width = widthPx;
-        lp.height = heightPx;
-        setLayoutParams(lp);
-        requestLayout();
-        invalidate();
-        float density = getResources().getDisplayMetrics().density;
-        int widthDp = Math.round(widthPx / density);
-        int heightDp = Math.round(heightPx / density);
-        service.getSharedPreferences("fast_keyboard_settings",0).edit()
-                .putInt("keyboard_width_dp", widthDp)
-                .putInt("keyboard_height_dp", heightDp).apply();
-    }
-
-    private int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(value, max));
-    }
-
-    private void applyKeyboardHeightDp(int heightDp) {
-        int clamped = Math.max(minHeightDp, Math.min(maxHeightDp, heightDp));
-        android.view.ViewGroup.LayoutParams lp = getLayoutParams();
-        if (lp == null) lp = new android.view.ViewGroup.LayoutParams(-1, dp(clamped));
-        lp.height = dp(clamped);
-        lp.width = -1;
-        setLayoutParams(lp);
-        requestLayout();
-        invalidate();
-        service.getSharedPreferences("fast_keyboard_settings", 0).edit()
-                .putInt("keyboard_height_dp", clamped).apply();
-    }
-
-    private int savedKeyboardHeightDp() {
-        return service.getSharedPreferences("fast_keyboard_settings", 0)
-                .getInt("keyboard_height_dp", defaultHeightDp);
-    }
-
-    private void enterResizeMode() {
-        resizeMode=true;
-        resizingKeyboard=false;
-        requestFocus();
-        invalidate();
-    }
-
-    private void exitResizeMode() {
-        resizeMode = false;
-        resizingKeyboard = false;
-        invalidate();
-    }
-
-    private void showResizeFloatInfo() {
-        ScrollView root=new ScrollView(service);
-        LinearLayout content=new LinearLayout(service);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(24,16,24,16);
-        root.addView(content, new ScrollView.LayoutParams(-1,-2));
-
-        final Button[] headerClose = new Button[1];
-        addPopupHeader(content, "Resize / Float", headerClose);
-
-        TextView info=new TextView(service);
-        info.setText("برای تغییر اندازه، ابتدا «تغییر اندازه» را بزنید و سپس گوشه پایین‌راست کیبورد را بکشید.\nدکمه «بازگشت به اندازه پیش‌فرض» اندازه اولیه را برمی‌گرداند.");
-        info.setTextSize(16);
-        content.addView(info,new LinearLayout.LayoutParams(-1,110));
-
-        SeekBar sizeBar=new SeekBar(service);
-        sizeBar.setMax(maxHeightDp-minHeightDp);
-        int currentSize=Math.max(minHeightDp,Math.min(maxHeightDp,savedKeyboardHeightDp()));
-        sizeBar.setProgress(currentSize-minHeightDp);
-        content.addView(sizeBar,new LinearLayout.LayoutParams(-1,60));
-        TextView sizeValue=new TextView(service);
-        sizeValue.setText(currentSize+" dp");
-        sizeValue.setGravity(Gravity.CENTER);
-        content.addView(sizeValue,new LinearLayout.LayoutParams(-1,42));
-        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-            public void onProgressChanged(SeekBar b,int progress,boolean fromUser){
-                int v=minHeightDp+progress;
-                sizeValue.setText(v+" dp");
-                applyKeyboardHeightDp(v);
-            }
-            public void onStartTrackingTouch(SeekBar b){}
-            public void onStopTrackingTouch(SeekBar b){}
-        });
-
-        Button resize=new Button(service);
-        resize.setText("تغییر اندازه با کشیدن گوشه");
-        content.addView(resize);
-        Button floatButton=new Button(service);
-        floatButton.setText("Float — کیبورد شناور");
-        content.addView(floatButton);
-        Button stopFloat=new Button(service);
-        stopFloat.setText("خاموش کردن Float");
-        content.addView(stopFloat);
-        Button defaultSizeButton=new Button(service);
-        defaultSizeButton.setText("بازگشت به اندازه پیش‌فرض");
-        content.addView(defaultSizeButton);
-        Button okay=new Button(service);
-        okay.setText("Okay");
-        content.addView(okay);
-
-        final PopupWindow popup=new PopupWindow(root,
-                Math.min(dp(430),Math.max(dp(310),getWidth()-dp(12))),
-                Math.min(dp(620),Math.max(dp(300),getHeight()-dp(24))), false);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
-        popup.setTouchable(true);
-        popup.setFocusable(false);
-        popup.setOutsideTouchable(true);
-        popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
-        popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
-        popup.setElevation(10f);
-
-        headerClose[0].setOnClickListener(v -> popup.dismiss());
-        resize.setOnClickListener(v->{ popup.dismiss(); enterResizeMode(); });
-        floatButton.setOnClickListener(v->{ popup.dismiss(); service.startFloatingKeyboard(); });
-        stopFloat.setOnClickListener(v->{ popup.dismiss(); service.stopFloatingKeyboard(); });
-        defaultSizeButton.setOnClickListener(v->{
-            service.getSharedPreferences("fast_keyboard_settings",0).edit().remove("keyboard_height_dp").apply();
-            applyKeyboardHeightDp(defaultHeightDp);
-            exitResizeMode();
-        });
-        okay.setOnClickListener(v->{ exitResizeMode(); popup.dismiss(); });
-        popup.showAtLocation(this,Gravity.CENTER,0,0);
-    }
-
     private void showClipboardHistory() {
         final List<String> items = service.getClipboardHistory();
         LinearLayout root = new LinearLayout(service);
@@ -653,7 +633,6 @@ public class FastKeyboardView extends View {
         private PopupWindow popup;
         private float cx, cy, radius;
         private float downX, downY, startX, startY;
-        private boolean resizing;
         private long lastMove;
         private RectF upRect = new RectF(), downRect = new RectF(), leftRect = new RectF(), rightRect = new RectF();
         private RectF closeRect = new RectF(), spaceRect = new RectF(), backRect = new RectF(), padRect = new RectF();
@@ -747,16 +726,10 @@ public class FastKeyboardView extends View {
                 handleButton(x,y);
                 if(closeRect.contains(x,y)||spaceRect.contains(x,y)||backRect.contains(x,y)||upRect.contains(x,y)||downRect.contains(x,y)||leftRect.contains(x,y)||rightRect.contains(x,y)) return true;
                 downX=x; downY=y; startX=getTranslationX(); startY=getTranslationY();
-                resizing=(x>getWidth()-35 && y>getHeight()-35);
                 return true;
             }
             if(e.getAction()==MotionEvent.ACTION_MOVE){
-                if(resizing){
-                    int nw=Math.max(300,(int)(getWidth()+x-downX));
-                    int nh=Math.max(360,(int)(getHeight()+y-downY));
-                    popup.setWidth(nw); popup.setHeight(nh);
-                    downX=x; downY=y;
-                }else if(padRect.contains(x,y)){
+                if(padRect.contains(x,y)){
                     moveBy(x-downX,y-downY);
                     downX=x; downY=y;
                 }else{
@@ -767,7 +740,6 @@ public class FastKeyboardView extends View {
                 return true;
             }
             if(e.getAction()==MotionEvent.ACTION_UP){
-                resizing=false;
                 return true;
             }
             return true;
@@ -808,13 +780,6 @@ public class FastKeyboardView extends View {
         keyH=Math.max(1f,h/7f);
         suggestionH=keyH*0.62f;
         drawKeyboard(c);
-        if (resizeMode) {
-            p.setColor(NAVY); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3);
-            float g = Math.min(42f, Math.min(w, h) * 0.10f);
-            c.drawLine(w - g, h - 7, w - 7, h - g, p);
-            c.drawLine(w - g - 7, h - 7, w - 7, h - g - 7, p);
-            p.setStyle(Paint.Style.FILL);
-        }
     }
 
     private float[] visibleRowBounds(){
@@ -870,13 +835,14 @@ public class FastKeyboardView extends View {
     }
 
     private void drawSuggestionRow(Canvas c,float top,float bottom){
-        float gapPx=dp(4), h=bottom-top;
-        float[] widths={0.12f,0.16f,0.19f,0.25f,0.13f,0.13f};
-        float usable=getWidth()-gapPx*(widths.length+1);
-        float x=gapPx;
-        for(int i=0;i<widths.length;i++){
-            float cw=usable*widths[i];
-            String text=i<4 && i<suggestions.length?suggestions[i]:i==4?"Hidden":"Resize";
+        float gapPx=dp(5);
+        float[] widths={0.125f,0.125f,0.125f,0.125f,0.125f,0.125f,0.10f};
+        float usable=getWidth()-gapPx*(widths.length-1);
+        float total=0f; for(float q:widths) total+=q;
+        float scale=usable/total, x=gapPx;
+        for(int i=0;i<7;i++){
+            float cw=widths[i]*scale;
+            String text=i<6?suggestions[i]:"Hidden";
             key(c,x,top,x+cw,bottom,text,NAVY,false);
             x+=cw+gapPx;
         }
@@ -1096,7 +1062,6 @@ public class FastKeyboardView extends View {
             word=b.substring(i+1);
         }
         Arrays.fill(suggestions,"");
-        if(word.isEmpty()){invalidate();return;}
         LinkedHashSet<String> found=new LinkedHashSet<>();
         for(String[] group:WORDS) for(String candidate:group)
             if(!candidate.equals(word) && candidate.startsWith(word)) found.add(candidate);
@@ -1110,6 +1075,14 @@ public class FastKeyboardView extends View {
             for(String candidate:EXTRA_WORDS){
                 if(candidate!=null && !candidate.isEmpty() && !candidate.equals(word) && candidate.contains(word)) found.add(candidate);
                 if(found.size()>=12) break;
+            }
+        }
+        // Fill any remaining suggestion slots from the expanded built-in word bank,
+        // while keeping the Hidden button separate.
+        if(found.size()<6){
+            for(String candidate:EXTRA_WORDS){
+                if(candidate!=null && !candidate.isEmpty() && !candidate.equals(word)) found.add(candidate);
+                if(found.size()>=6) break;
             }
         }
         int n=0; for(String candidate:found){ suggestions[n++]=candidate; if(n>=6) break; }
@@ -1202,30 +1175,6 @@ public class FastKeyboardView extends View {
     @Override public boolean onTouchEvent(MotionEvent e){
         float x = e.getX(), y = e.getY();
 
-        if (resizeMode) {
-            final float grip=dp(48);
-            if(e.getAction()==MotionEvent.ACTION_DOWN){
-                resizeStartX=e.getRawX(); resizeStartY=e.getRawY();
-                resizeStartWidth=Math.max(getWidth(),dp(minWidthDp));
-                resizeStartHeight=Math.max(getHeight(),dp(minHeightDp));
-                resizeEdgeX=(x<=grip)?-1:((x>=getWidth()-grip)?1:0);
-                resizeEdgeY=(y<=grip)?-1:((y>=getHeight()-grip)?1:0);
-                resizingKeyboard=(resizeEdgeX!=0 || resizeEdgeY!=0);
-                return true;
-            }
-            if(e.getAction()==MotionEvent.ACTION_MOVE && resizingKeyboard){
-                float dx=e.getRawX()-resizeStartX, dy=e.getRawY()-resizeStartY;
-                int nw=clamp(resizeStartWidth+Math.round(resizeEdgeX*dx),dp(minWidthDp),dp(maxWidthDp));
-                int nh=clamp(resizeStartHeight+Math.round(resizeEdgeY*dy),dp(minHeightDp),dp(maxHeightDp));
-                applyKeyboardSizePx(nw,nh);
-                return true;
-            }
-            if(e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL){
-                resizingKeyboard=false; return true;
-            }
-            return true;
-        }
-
         if(e.getAction()==MotionEvent.ACTION_DOWN){
             stopRepeat();
             pressRectFor(x, y, true);
@@ -1289,9 +1238,16 @@ public class FastKeyboardView extends View {
         return -1;
     }
     private int suggestionIndex(float x){
-        float g=dp(4); float[] widths={0.12f,0.16f,0.19f,0.25f,0.13f,0.13f};
-        float usable=getWidth()-g*(widths.length+1), pos=g;
-        for(int i=0;i<widths.length;i++){ float cw=usable*widths[i]; if(x>=pos&&x<=pos+cw) return i; pos+=cw+g; }
+        float g=dp(5);
+        float[] widths={0.125f,0.125f,0.125f,0.125f,0.125f,0.125f,0.10f};
+        float usable=getWidth()-g*(widths.length-1), total=0f;
+        for(float q:widths) total+=q;
+        float scale=usable/total, pos=g;
+        for(int i=0;i<7;i++){
+            float cw=widths[i]*scale;
+            if(x>=pos&&x<=pos+cw) return i;
+            pos+=cw+g;
+        }
         return -1;
     }
 
@@ -1321,7 +1277,7 @@ public class FastKeyboardView extends View {
         }
         if(row==1){
             int si=suggestionIndex(x);
-            if(si==4){ hideSuggestionRow=true; invalidate(); return; }
+            if(si==6){ hideSuggestionRow=true; invalidate(); return; }
             if(si==0 && !suggestions[0].isEmpty()) service.replaceCurrentWord(suggestions[0]);
             else if(si==1 && !suggestions[1].isEmpty()) service.replaceCurrentWord(suggestions[1]);
             else if(si==2 && !suggestions[2].isEmpty()) service.replaceCurrentWord(suggestions[2]);
