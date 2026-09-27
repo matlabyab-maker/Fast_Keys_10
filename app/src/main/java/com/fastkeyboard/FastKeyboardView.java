@@ -1223,8 +1223,6 @@ public class FastKeyboardView extends View {
         return null;
     }
 
-    private int dp(float x){ return (int)(x*getResources().getDisplayMetrics().density+0.5f); }
-
     private int resizeEdgeAt(float x, float y){
         if(!resizeMode) return 0;
         float h=dp(22);
@@ -1243,7 +1241,7 @@ public class FastKeyboardView extends View {
                 resizing=true; resizeEdges=edge;
                 resizeStartX=e.getRawX(); resizeStartY=e.getRawY();
                 resizeStartW=getWidth(); resizeStartH=getHeight();
-                pressedKey=null; stopRepeat(); invalidate(); return true;
+                stopRepeat(); clearPressGlowNow(); invalidate(); return true;
             }
         } else if(resizing && (e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL)){
             if(e.getAction()==MotionEvent.ACTION_MOVE){
