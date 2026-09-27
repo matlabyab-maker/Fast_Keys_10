@@ -416,6 +416,28 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         if (keyboard != null) keyboard.refreshSuggestions();
     }
 
+    /**
+     * Move the active input connection to the beginning using the same
+     * KEYCODE_MOVE_HOME method as the supplied reference code.
+     */
+    public void goToHome() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME));
+        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_HOME));
+    }
+
+    /**
+     * Move the active input connection to the end using the same
+     * KEYCODE_MOVE_END method as the supplied reference code.
+     */
+    public void goToEnd() {
+        InputConnection ic = getCurrentInputConnection();
+        if (ic == null) return;
+        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END));
+        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_END));
+    }
+
     public void scrollToTop() {
         if (FastKeyboardAccessibilityService.isEnabled()) FastKeyboardAccessibilityService.scrollToTop();
         else { InputConnection ic=getCurrentInputConnection(); if(ic!=null) ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_MOVE_HOME)); if(ic!=null) ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_MOVE_HOME)); }

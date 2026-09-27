@@ -1191,8 +1191,8 @@ public class FastKeyboardView extends View {
         if(row==0){
             // Normalized zones taken directly from the supplied reference image.
             int i=topToolbarIndex(x); if(i<0) return;
-            if(i==0) service.scrollToBottom();
-            else if(i==1) service.scrollToTop();
+            if(i==0) service.goToEnd();
+            else if(i==1) service.goToHome();
             else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
             else if(i==3) service.copyAll();
             else if(i==4) service.copyScreen();
