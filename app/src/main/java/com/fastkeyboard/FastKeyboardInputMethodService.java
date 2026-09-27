@@ -422,9 +422,16 @@ public class FastKeyboardInputMethodService extends InputMethodService {
      */
     public void goToHome() {
         InputConnection ic = getCurrentInputConnection();
-        if (ic == null) return;
-        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_HOME));
-        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_HOME));
+        if (ic != null) {
+            try {
+                CharSequence before = ic.getTextBeforeCursor(10000, 0);
+                if (before != null) {
+                    ic.setSelection(0, 0);
+                    return;
+                }
+            } catch (Exception ignored) {}
+        }
+        FastKeyboardAccessibilityService.scrollToTop();
     }
 
     /**
@@ -433,9 +440,16 @@ public class FastKeyboardInputMethodService extends InputMethodService {
      */
     public void goToEnd() {
         InputConnection ic = getCurrentInputConnection();
-        if (ic == null) return;
-        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MOVE_END));
-        ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MOVE_END));
+        if (ic != null) {
+            try {
+                CharSequence before = ic.getTextBeforeCursor(10000, 0);
+                if (before != null) {
+                    ic.setSelection(before.length(), before.length());
+                    return;
+                }
+            } catch (Exception ignored) {}
+        }
+        FastKeyboardAccessibilityService.scrollToBottom();
     }
 
     public void scrollToTop() {

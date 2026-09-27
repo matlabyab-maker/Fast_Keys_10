@@ -50,6 +50,11 @@ public class FastKeyboardView extends View {
         }
     };
     private final String[] suggestions = new String[6];
+    private final Runnable delayedSuggestionRefresh = () -> refreshSuggestions();
+    private void requestSuggestionsRefresh(){
+        handler.removeCallbacks(delayedSuggestionRefresh);
+        handler.postDelayed(delayedSuggestionRefresh, 70);
+    }
     private float suggestionH;
     private static final String[][] WORDS = {
         {"سلام","سلامت","سلامتی"},{"من","منم","منطقه"},{"این","اینجا","اینجانب"},
@@ -58,7 +63,7 @@ public class FastKeyboardView extends View {
         {"تایپ","تایپی","تایپ کردن"},{"کلمه","کلمات","کلمه‌های"}
     };
     private static final String[] EXTRA_WORDS = (
-        "آب آدم آدمی آسمان امروز امشب آن آنها آنجا آیا اگر اکنون اینجا ای ایران با بار باران باشد باشم باشید باشی باشند باید برای بعد بدون بین به بهتر بود بودن تا تازه تمام تماماً تاریخ خانه حال حالت حتی هر همه هم همین همینجا هنوز همراه هیچ یکدیگر یا یعنی یاد یک یکی من ما مادر پدر دوست دوستان مردم مرد زن زنان بچه کودک خانواده کار کارها کاری کتاب کتابخانه مدرسه دانشگاه دانش دانشجو معلم استاد برنامه پروژه فایل فایل‌ها پوشه گوشی تلفن رایانه کامپیوتر اینترنت وب صفحه سایت مرورگر کیبورد کلید دکمه برنامه‌نویسی کد ساخت ساختن انجام شد می‌دهم می‌توانم می‌شود می‌خواهم می‌خواهیم می‌داند می‌دانم می‌گویم می‌گوید می‌روم می‌آیم می‌خورم می‌نویسم می‌خوانم می‌بینم می‌کنم می‌کند خوب خیلی خوبه بد بزرگ کوچک جدید قدیم سریع آرام درست غلط مهم لازم ممکن آماده مشکل مشکلات سوال پاسخ جواب دلیل علت روش راه راهنما کمک لطفاً لطفا ممنون متشکرم سلامتی صبح ظهر شب روز هفته ماه سال زمان وقت الان بعداً دوباره همیشه هرگز گاهی معمولاً اول آخر بالا پایین داخل بیرون کنار مقابل روی زیر میان وسط نزدیک دور جلو عقب چپ راست اتاق در پنجره میز صندلی غذا نان چای قهوه میوه سیب پرتقال قلم کاغذ ماشین خودرو اتوبوس قطار هواپیما سفر جاده شهر روستا کشور دنیا زمین دریا کوه آفتاب هوا برف باد سرد گرم تابستان زمستان بهار پاییز رنگ سفید سیاه قرمز سبز آبی زرد شروع شروعی پایان کردن ادامه بده توقف حرکت رفتن آمدن گرفتن دادن گذاشتن برداشتن خرید فروش قیمت پول حساب شماره نام اسم متن جمله حرف حروف زبان فارسی انگلیسی عربی معنی ترجمه توضیح مثال تصویر عکس فیلم صدا ویدیو موسیقی خبر اطلاعات نتیجه انتخاب گزینه نسخه جدیدترین قدیمی ترین تنظیم تنظیمات تغییر اندازه بزرگتر کوچکتر باز بسته بازکردن بستن نمایش مخفی ذخیره حذف پاک ارسال دریافت دانلود آپلود نصب اجرا کاربردی بسیار ویرانگر که بیشتر ها را کرد و از حد عادی خارج زودتر بله کلمات مورد استفاده پیامهایی تو دادم سطر شکل لیست بیار فونت نستعلیق بخش کشویی قرار اما بگویم اینکه سر جای خودشان چیده نشده اند بعضی هایشان مانند اینتر این یکم فاصله دک commit repository دار گذشته جریان هستی Fast Keyboard خود اختصاصی تاریخچه اش است منظورم آخرین مرحله کلیپ رنگی کن بیاور کولر گازی های جنرال نسل قبل درها برایشان کاملا بست داشته همان هوای آزاد صحنه فریمهای شبیه تکراری آنهایی آموزش کافی هستند پخش نکرد نه کیفیتش اصلی کانورت نکن original حالا تمیز Radio جایگزین نباید چون احتمالا موارد نمی توانم خودم پیدا کنم هوش مصنوعی یکدست می شود سبک وزن تر کارکرد موضوعات مشخص محدود ساخته شوند تبدیل حجم کیفیت ویدئو خراب نشود اولیه کودکی معرفی کردم خودت mb کدک منیجر ماهوارهای بالای اورست آنلاین حاضر خواهم دیواره کوهها میخواهم نمای عمودی صخره Android fast radio دهیم"
+        "آب آدم آدمی آسمان امروز امشب آن آنها آنجا آیا اگر اکنون اینجا ای ایران با بار باران باشد باشم باشید باشی باشند باید برای بعد بدون بین به بهتر بود بودن تا تازه تمام تماماً تاریخ خانه حال حالت حتی هر همه هم همین همینجا هنوز همراه هیچ یکدیگر یا یعنی یاد یک یکی من ما مادر پدر دوست دوستان مردم مرد زن زنان بچه کودک خانواده کار کارها کاری کتاب کتابخانه مدرسه دانشگاه دانش دانشجو معلم استاد برنامه پروژه فایل فایل‌ها پوشه گوشی تلفن رایانه کامپیوتر اینترنت وب صفحه سایت مرورگر کیبورد کلید دکمه برنامه‌نویسی کد ساخت ساختن انجام شد می‌دهم می‌توانم می‌شود می‌خواهم می‌خواهیم می‌داند می‌دانم می‌گویم می‌گوید می‌روم می‌آیم می‌خورم می‌نویسم می‌خوانم می‌بینم می‌کنم می‌کند خوب خیلی خوبه بد بزرگ کوچک جدید قدیم سریع آرام درست غلط مهم لازم ممکن آماده مشکل مشکلات سوال پاسخ جواب دلیل علت روش راه راهنما کمک لطفاً لطفا ممنون متشکرم سلامتی صبح ظهر شب روز هفته ماه سال زمان وقت الان بعداً دوباره همیشه هرگز گاهی معمولاً اول آخر بالا پایین داخل بیرون کنار مقابل روی زیر میان وسط نزدیک دور جلو عقب چپ راست اتاق در پنجره میز صندلی غذا نان چای قهوه میوه سیب پرتقال قلم کاغذ ماشین خودرو اتوبوس قطار هواپیما سفر جاده شهر روستا کشور دنیا زمین دریا کوه آفتاب هوا برف باد سرد گرم تابستان زمستان بهار پاییز رنگ سفید سیاه قرمز سبز آبی زرد شروع شروعی پایان کردن ادامه بده توقف حرکت رفتن آمدن گرفتن دادن گذاشتن برداشتن خرید فروش قیمت پول حساب شماره نام اسم متن جمله حرف حروف زبان فارسی انگلیسی عربی معنی ترجمه توضیح مثال تصویر عکس فیلم صدا ویدیو موسیقی خبر اطلاعات نتیجه انتخاب گزینه نسخه جدیدترین قدیمی ترین تنظیم تنظیمات تغییر اندازه بزرگتر کوچکتر باز بسته بازکردن بستن نمایش مخفی ذخیره حذف پاک ارسال دریافت دانلود آپلود نصب اجرا کاربردی بسیار ویرانگر که بیشتر ها را کرد و از حد عادی خارج زودتر بله کلمات مورد استفاده پیامهایی تو دادم سطر شکل لیست بیار فونت نستعلیق بخش کشویی قرار اما بگویم اینکه سر جای خودشان چیده نشده اند بعضی هایشان مانند اینتر این یکم فاصله دک commit repository دار گذشته جریان هستی Fast Keyboard خود اختصاصی تاریخچه اش است منظورم آخرین مرحله کلیپ رنگی کن بیاور کولر گازی های جنرال نسل قبل درها برایشان کاملا بست داشته همان هوای آزاد صحنه فریمهای شبیه تکراری آنهایی آموزش کافی هستند پخش نکرد نه کیفیتش اصلی کانورت نکن original حالا تمیز Radio جایگزین نباید چون احتمالا موارد نمی توانم خودم پیدا کنم هوش مصنوعی یکدست می شود سبک وزن تر کارکرد موضوعات مشخص محدود ساخته شوند تبدیل حجم کیفیت ویدئو خراب نشود اولیه کودکی معرفی کردم خودت mb کدک منیجر ماهوارهای بالای اورست آنلاین حاضر خواهم دیواره کوهها میخواهم نمای عمودی صخره Android fast radio دهیم اصلاح خطا ویرایشگر پیشنهادی درون اضافه"
     ).split(" ");
     private final int BG=Color.rgb(239,238,232), DEFAULT_KEY=Color.rgb(250,249,244),
             BLUE=Color.rgb(20,112,235), NAVY=Color.rgb(18,38,78), NUMBER_BROWN=Color.rgb(116,58,24), BLACK=Color.rgb(25,29,34),
@@ -1299,8 +1304,8 @@ public class FastKeyboardView extends View {
         if(row==0){
             // Normalized zones taken directly from the supplied reference image.
             int i=topToolbarIndex(x); if(i<0) return;
-            if(i==0) service.goToEnd();
-            else if(i==1) service.goToHome();
+            if(i==0) service.goToHome();
+            else if(i==1) service.goToEnd();
             else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
             else if(i==3) service.copyAll();
             else if(i==4) service.copyScreen();
@@ -1345,18 +1350,11 @@ public class FastKeyboardView extends View {
         if(row==4){
             if(nx>0.91f){service.enter();return;}
             String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"};
-            int i=-1;
-            if(englishMode && middleEnglishKeyRects.size()==keys.length){
-                // Use the exact rectangles created during drawing, so touch and visual key
-                // boundaries cannot drift apart.
-                for(int k=0;k<middleEnglishKeyRects.size();k++){
-                    if(middleEnglishKeyRects.get(k).contains(x,y)){ i=k; break; }
-                }
-            } else {
-                i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
-            }
+            // Calculate the same cell geometry used for drawing on every tap.
+            // Do not depend on cached rectangles from a previous frame/layout.
+            int i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
             if(i<0 || i>=keys.length) return;
-            if(i==0){caps=!caps; if(caps){ capsBlinkOn=true; handler.removeCallbacks(capsBlink); handler.postDelayed(capsBlink,420); } else { capsBlinkOn=false; handler.removeCallbacks(capsBlink); } invalidate();return;}
+            if(i==0){ toggleCaps(); return; }
             if(englishMode && keys[i].isEmpty()) return;
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
         }
@@ -1460,7 +1458,17 @@ public class FastKeyboardView extends View {
             mp.setStyle(Paint.Style.FILL); mp.setColor(Color.LTGRAY); c.drawCircle(w/2f,h/2f,dp(20),mp);
             mp.setColor(NAVY); mp.setTextSize(dp(16)); mp.setTextAlign(Paint.Align.CENTER); c.drawText("حرکت نشانگر",w/2f,h/2f+dp(55),mp);
         }
-        @Override public boolean onTouchEvent(MotionEvent e){
+        @Override private void toggleCaps(){
+        caps = !caps;
+        capsBlinkOn = caps;
+        handler.removeCallbacks(capsBlink);
+        if(caps){
+            handler.postDelayed(capsBlink,420);
+        }
+        invalidate();
+    }
+
+    public boolean onTouchEvent(MotionEvent e){
             if(e.getAction()==MotionEvent.ACTION_DOWN){lastX=e.getX();lastY=e.getY();return true;}
             if(e.getAction()==MotionEvent.ACTION_MOVE){float dx=e.getX()-lastX,dy=e.getY()-lastY;lastX=e.getX();lastY=e.getY();FastKeyboardAccessibilityService.movePointer(dx*1.8f,dy*1.8f);return true;}
             return true;
