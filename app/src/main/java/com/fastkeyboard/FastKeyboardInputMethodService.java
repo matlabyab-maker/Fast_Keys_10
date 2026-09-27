@@ -36,12 +36,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     // Floating position of the IME window. x is from the left, y is from the bottom.
     private int imeX = 0;
     private int imeY = 0;
-    private static final String PREFS_NAME = "keyboard_prefs";
-    private static final String PREF_WIDTH = "width";
-    private static final String PREF_HEIGHT = "height";
-    private static final String PREF_X = "x";
-    private static final String PREF_Y = "y";
-    private boolean restoringImeSize = false;
     private final LinkedList<String> clipboardHistory = new LinkedList<>();
     private ClipboardManager clipboardManager;
     private ClipboardManager.OnPrimaryClipChangedListener clipListener;
@@ -104,25 +98,21 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             if(!text.isEmpty()) any=true;
         }
         relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
-        // Do not reset the user's saved window size when suggestions appear.
-        // Only ensure enough height for the suggestion row when it is visible.
-        int currentH = getCurrentImeHeight();
-        int neededH = any ? dp(420) : dp(250);
-        if (any && currentH < neededH) updateKeyboardSize(getCurrentImeWidth(), neededH);
-        else if (keyboard != null) keyboard.requestLayout();
+        // Keep the whole keyboard visible when the 3-item suggestion bar is shown.
+        applyImeWindowSize(dp(any ? 420 : 380));
     }
 
     @Override public View onCreateInputView() {
         // Keep the IME in the normal bottom keyboard area instead of fullscreen/extract mode.
-        // The keyboard itself fills the actual space available in the IME window.
-        // This is important during resize: a fixed child height can be clipped when the
-        // WindowManager height becomes smaller or larger.
         keyboard = new FastKeyboardView(this);
+        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
+
+        // Initial IME window size. Resize changes this WindowManager.LayoutParams directly.
+        applyImeWindowSize(dp(380));
 
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         root.setBackgroundColor(android.graphics.Color.WHITE);
 
         relatedBar=new LinearLayout(this);
@@ -146,21 +136,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
         }
         root.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
-        // Weight keeps every keyboard row inside the real window bounds after Resize.
-        LinearLayout.LayoutParams keyboardLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        root.addView(keyboard, keyboardLp);
-
-        // Restore the last user-selected size. If no size has been saved yet,
-        // use the normal full-width 380dp keyboard.
-        android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        int savedW = prefs.getInt(PREF_WIDTH, getSafeScreenWidth());
-        int savedH = prefs.getInt(PREF_HEIGHT, dp(380));
-        imeX = prefs.getInt(PREF_X, 0);
-        imeY = prefs.getInt(PREF_Y, 0);
-        restoringImeSize = true;
-        updateKeyboardSize(savedW, savedH);
-        restoringImeSize = false;
+        root.addView(keyboard);
         return root;
     }
 
@@ -178,28 +154,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         // Keep the IME inside the usable screen area. This is intentionally
         // bounded instead of allowing an oversized WindowManager height.
         return Math.max(dp(250), (int)(getSafeScreenHeight() * 0.60f));
-    }
-
-    private int getCurrentImeWidth() {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                int w = dialog.getWindow().getAttributes().width;
-                if (w > 0 && w != WindowManager.LayoutParams.MATCH_PARENT) return w;
-            }
-        } catch (Exception ignored) {}
-        return getSafeScreenWidth();
-    }
-
-    private int getCurrentImeHeight() {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                int h = dialog.getWindow().getAttributes().height;
-                if (h > 0 && h != WindowManager.LayoutParams.MATCH_PARENT) return h;
-            }
-        } catch (Exception ignored) {}
-        return dp(380);
     }
 
     public void updateKeyboardSize(int newWidth, int newHeight) {
@@ -225,19 +179,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
-
-            // Persist the actual constrained size and position so recreating the IME
-            // does not return to the default dimensions.
-            if (!restoringImeSize) {
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putInt(PREF_WIDTH, constrainedW)
-                        .putInt(PREF_HEIGHT, constrainedH)
-                        .putInt(PREF_X, imeX)
-                        .putInt(PREF_Y, imeY)
-                        .apply();
-            }
-            if (keyboard != null) keyboard.requestLayout();
-            if (relatedBar != null) relatedBar.requestLayout();
         } catch (Exception ignored) {}
     }
 
@@ -271,10 +212,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                    .putInt(PREF_X, imeX)
-                    .putInt(PREF_Y, imeY)
-                    .apply();
         } catch (Exception ignored) {}
     }
 
