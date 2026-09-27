@@ -193,6 +193,8 @@ public class FastKeyboardView extends View {
     private boolean hideTopRow = false;
     private boolean hideSuggestionRow = false;
     private int quickSizeIndex = 0; // 0=100%, 1=75%, 2=50%, 3=40%
+    private float sizeWheelDownY = 0f;
+    private boolean sizeWheelTouch = false;
     private boolean capsBlinkOn = false;
     private final Runnable capsBlink = new Runnable(){ public void run(){ if(caps){ capsBlinkOn=!capsBlinkOn; invalidate(); handler.postDelayed(this,420); } else { capsBlinkOn=false; invalidate(); } } };
     private static final float[] SOURCE_BANDS = {0f,122f,206f,342f,470f,600f,722f,856f};
@@ -222,6 +224,18 @@ public class FastKeyboardView extends View {
         p.setColor(color);
         p.setTextAlign(Paint.Align.CENTER);
         c.drawText(s,x,y-(p.ascent()+p.descent())/2,p);
+    }
+
+    private void txtBold(Canvas c,String s,float x,float y,float size,int color){
+        p.setTypeface(Typeface.create("sans",Typeface.BOLD));
+        p.setTextSize(size);
+        p.setColor(color);
+        p.setTextAlign(Paint.Align.CENTER);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        p.setStrokeWidth(Math.max(1.2f, size*0.075f));
+        c.drawText(s,x,y-(p.ascent()+p.descent())/2,p);
+        p.setStyle(Paint.Style.FILL);
+        p.setStrokeWidth(1f);
     }
 
     private void key(Canvas c,float l,float t,float r,float b,String label,int color,boolean square){
@@ -296,7 +310,6 @@ public class FastKeyboardView extends View {
 
         Button transparency = drawerButton("شفافیت کیبورد");
         Button palette = drawerButton("رنگ کیبورد");
-        Button emoji = drawerButton("انتخاب Emoji");
         Button steering = drawerButton("فرمان ماشین");
         Button arabic = drawerButton("حرکت‌ها و صداهای عربی");
         Button history = drawerButton("تاریخچه کلیپ‌بورد (۱۰۰)");
@@ -305,7 +318,7 @@ public class FastKeyboardView extends View {
         Button keyboardSize = drawerButton("تغییر اندازه کیبورد");
 
         Button quickSettings = drawerButton("Quick Settings");
-        Button[] buttons={transparency,palette,emoji,steering,arabic,history,mouse,calculator,keyboardSize,quickSettings};
+        Button[] buttons={transparency,palette,steering,arabic,history,mouse,calculator,keyboardSize,quickSettings};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -321,7 +334,6 @@ public class FastKeyboardView extends View {
 
         transparency.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showTransparency));
         palette.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showColorPalette));
-        emoji.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showEmojiPicker));
         steering.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showSteeringWheel));
         arabic.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showArabicHarakat));
         history.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showClipboardHistory));
@@ -835,11 +847,17 @@ public class FastKeyboardView extends View {
 
     @Override protected void onDraw(Canvas c){
         super.onDraw(c);
+        float scale = service.getKeyboardScale();
+        // The View remains full height; only its keyboard contents are scaled.
+        // This preserves every lower row instead of clipping it.
+        c.save();
+        c.scale(scale, scale, 0f, 0f);
         float w=getWidth(),h=getHeight();
         gap=dp(4);
         keyH=Math.max(1f,h/7f);
         suggestionH=keyH*0.62f;
         drawKeyboard(c);
+        c.restore();
     }
 
     private float[] visibleRowBounds(){
@@ -881,12 +899,30 @@ public class FastKeyboardView extends View {
         String[] labels={"MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","اندازه","Hidden"};
         for(int i=0;i<labels.length;i++){
             float cw=weights[i]*scale;
-            if(i==0){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
+            if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
             else if(i==9){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
+            else if(i==10){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawSizeWheel(c,x,top,x+cw,bottom); }
             else if(i==1 || i==2) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
+    }
+
+    private void drawSizeWheel(Canvas c,float l,float t,float r,float b){
+        float cx=(l+r)/2f, cy=(t+b)/2f;
+        float rad=Math.min(r-l,b-t)*0.25f;
+        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.2f); p.setColor(NAVY);
+        c.drawRoundRect(cx-rad,cy-rad*1.15f,cx+rad,cy+rad*1.15f,rad,rad,p);
+        p.setStyle(Paint.Style.FILL);
+        c.drawCircle(cx,cy,rad*.48f,p);
+        p.setColor(Color.WHITE); c.drawCircle(cx,cy,rad*.18f,p);
+        p.setColor(NAVY);
+        c.drawRect(cx-rad*.12f,cy-rad*.88f,cx+rad*.12f,cy-rad*.58f,p);
+        c.drawRect(cx-rad*.12f,cy+rad*.58f,cx+rad*.12f,cy+rad*.88f,p);
+        p.setTextAlign(Paint.Align.CENTER); p.setTextSize(Math.max(8f,rad*.48f));
+        String[] marks={"100","75","50","40"};
+        String mark=marks[Math.max(0,Math.min(3,quickSizeIndex))]+"%";
+        c.drawText(mark,cx,b-dp(3),p);
     }
 
     private void keyToolbarText(Canvas c,float l,float t,float r,float b,String label,int color,float size){
@@ -916,7 +952,7 @@ public class FastKeyboardView extends View {
         String[] sym={"!","@","#","$","%","^","&","*","(",")","=","+"};
         for(int i=0;i<n;i++){
             String label=(caps? (sym[i]+"\n"+nums[i]) : (i==0?"!\n"+nums[i]:i==1?"@\n"+nums[i]:i==2?"#\n"+nums[i]:i==3?"$\n"+nums[i]:i==4?"%\n"+nums[i]:i==5?"^\n"+nums[i]:i==6?"&\n"+nums[i]:i==7?"*\n"+nums[i]:i==8?"(\n"+nums[i]:i==9?")\n"+nums[i]:i==10?"-\n=":"+\n="));
-            drawTwoLineKey(c,i*(cw+gapPx)+gapPx,top,i*(cw+gapPx)+gapPx+cw,bottom,label,NUMBER_BROWN);
+            drawTwoLineKeyBold(c,i*(cw+gapPx)+gapPx,top,i*(cw+gapPx)+gapPx+cw,bottom,label,NUMBER_BROWN);
         }
         keyWithBackground(c,getWidth()-reserved+gapPx/2,top,getWidth()-gapPx,bottom,"⌫",NAVY,BACKSPACE_BG,false);
     }
@@ -937,8 +973,12 @@ public class FastKeyboardView extends View {
                 middleEnglishKeyRects.add(new RectF(l,top,r,bottom));
             }
             if(!first && i==0 && englishMode && caps && capsBlinkOn){
-                keyWithBackground(c,l,top,r,bottom,keys[i],Color.WHITE,GREEN,false);
-            } else key(c,l,top,r,bottom,keys[i],NAVY,false);
+                keyWithBackground(c,l,top,r,bottom,"",Color.WHITE,GREEN,false);
+                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),Color.WHITE);
+            } else {
+                key(c,l,top,r,bottom,"",NAVY,false);
+                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),NAVY);
+            }
         }
         if(!first) keyWithBackground(c,getWidth()-reserved,top,getWidth()-gapPx,bottom,"Enter",NAVY,ENTER_BG,false);
     }
@@ -949,7 +989,8 @@ public class FastKeyboardView extends View {
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
         for(int i=0;i<count;i++){
             float l=left+i*(cw+gapPx);
-            if(keys[i].isEmpty()) key(c,l,top,l+cw,bottom,"",NAVY,false); else key(c,l,top,l+cw,bottom,keys[i],NAVY,false);
+            if(keys[i].isEmpty()) key(c,l,top,l+cw,bottom,"",NAVY,false);
+            else { key(c,l,top,l+cw,bottom,"",NAVY,false); txtBold(c,keys[i],l+cw/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),NAVY); }
         }
     }
 
@@ -964,6 +1005,13 @@ public class FastKeyboardView extends View {
             keyWithBackground(c,x,top,x+cw,bottom,labels[i],NAVY,bg,false);
             x+=cw+gapPx;
         }
+    }
+
+    private void drawTwoLineKeyBold(Canvas c,float l,float t,float r,float b,String label,int textColor){
+        key(c,l,t,r,b,"",textColor,false);
+        String[] a=label.split("\\n",-1);
+        if(a.length==2){ float fs=Math.min(20,(b-t)*.28f); txtBold(c,a[0],(l+r)/2,t+(b-t)*.34f,fs,textColor); txtBold(c,a[1],(l+r)/2,t+(b-t)*.70f,fs,textColor); }
+        else txtBold(c,label,(l+r)/2,(t+b)/2,Math.min(20,(b-t)*.35f),textColor);
     }
 
     private void drawTwoLineKey(Canvas c,float l,float t,float r,float b,String label,int textColor){
@@ -1259,12 +1307,13 @@ public class FastKeyboardView extends View {
     }
 
     @Override public boolean onTouchEvent(MotionEvent e){
-        float x = e.getX(), y = e.getY();
+        float x = e.getX(), y = e.getY() / Math.max(0.40f, service.getKeyboardScale());
         if(e.getAction()==MotionEvent.ACTION_DOWN){
             stopRepeat();
             pressRectFor(x, y, true);
-            handle(x,y);
-            if (isRepeatableSymbolAt(x, y)) startSymbolRepeat(x, y);
+            if(getRowAt(y)==0 && topToolbarIndex(x)==10){ sizeWheelTouch=true; sizeWheelDownY=y; }
+            else handle(x,y);
+            if (isRepeatableSymbolAt(x, y) && !sizeWheelTouch) startSymbolRepeat(x, y);
             if (!isBackspaceAt(x, y)) {
                 pressHeld=false;
                 handler.removeCallbacks(clearPressGlow);
@@ -1272,8 +1321,22 @@ public class FastKeyboardView extends View {
             }
             return true;
         }
+        if(e.getAction()==MotionEvent.ACTION_MOVE && sizeWheelTouch){
+            return true;
+        }
         if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){
             stopRepeat();
+            if(sizeWheelTouch){
+                float dy=e.getY()-sizeWheelDownY;
+                if(e.getAction()==MotionEvent.ACTION_UP){
+                    if(Math.abs(dy)>=dp(12)){
+                        quickSizeIndex = dy<0 ? Math.max(0,quickSizeIndex-1) : Math.min(3,quickSizeIndex+1);
+                        float[] scales={1.0f,0.75f,0.50f,0.40f};
+                        service.setKeyboardScale(scales[quickSizeIndex]);
+                    } else cycleKeyboardSize();
+                }
+                sizeWheelTouch=false;
+            }
             clearPressGlowNow();
         }
         return true;
@@ -1481,9 +1544,7 @@ public class FastKeyboardView extends View {
         Button stop=drawerButton("خاموش کردن موس");
         stop.setOnClickListener(v -> FastKeyboardAccessibilityService.disable());
         root.addView(stop);
-        int screenH = service.getResources().getDisplayMetrics().heightPixels;
-        int mousePopupH = Math.min(dp(600), Math.max(dp(420), screenH - dp(24)));
-        final PopupWindow popup=new PopupWindow(root,Math.max(dp(280),getWidth()-dp(16)),mousePopupH,false);
+        final PopupWindow popup=new PopupWindow(root,Math.max(dp(280),getWidth()-dp(16)),Math.min(dp(600),Math.max(dp(420),getHeight()-dp(12))),false);
         popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE)); popup.setTouchable(true); popup.setFocusable(false); popup.setOutsideTouchable(true);
         popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED); popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING); popup.setElevation(10f);
         headerClose[0].setOnClickListener(v->popup.dismiss()); popup.showAtLocation(this,Gravity.CENTER,0,0);
