@@ -1448,6 +1448,16 @@ public class FastKeyboardView extends View {
         headerClose[0].setOnClickListener(v->popup.dismiss()); popup.showAtLocation(this,Gravity.CENTER,0,0);
     }
 
+    private void toggleCaps(){
+        caps = !caps;
+        capsBlinkOn = caps;
+        handler.removeCallbacks(capsBlink);
+        if(caps){
+            handler.postDelayed(capsBlink,420);
+        }
+        invalidate();
+    }
+
     private class MousePadView extends View {
         private final Paint mp=new Paint(Paint.ANTI_ALIAS_FLAG);
         private float lastX,lastY;
@@ -1458,16 +1468,6 @@ public class FastKeyboardView extends View {
             mp.setStyle(Paint.Style.FILL); mp.setColor(Color.LTGRAY); c.drawCircle(w/2f,h/2f,dp(20),mp);
             mp.setColor(NAVY); mp.setTextSize(dp(16)); mp.setTextAlign(Paint.Align.CENTER); c.drawText("حرکت نشانگر",w/2f,h/2f+dp(55),mp);
         }
-        @Override private void toggleCaps(){
-        caps = !caps;
-        capsBlinkOn = caps;
-        handler.removeCallbacks(capsBlink);
-        if(caps){
-            handler.postDelayed(capsBlink,420);
-        }
-        invalidate();
-    }
-
     public boolean onTouchEvent(MotionEvent e){
             if(e.getAction()==MotionEvent.ACTION_DOWN){lastX=e.getX();lastY=e.getY();return true;}
             if(e.getAction()==MotionEvent.ACTION_MOVE){float dx=e.getX()-lastX,dy=e.getY()-lastY;lastX=e.getX();lastY=e.getY();FastKeyboardAccessibilityService.movePointer(dx*1.8f,dy*1.8f);return true;}
