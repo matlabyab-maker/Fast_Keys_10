@@ -192,6 +192,7 @@ public class FastKeyboardView extends View {
     private boolean englishMode = false;
     private boolean hideTopRow = false;
     private boolean hideSuggestionRow = false;
+    private int quickSizeIndex = 0; // 0=100%, 1=75%, 2=50%, 3=40%
     private boolean capsBlinkOn = false;
     private final Runnable capsBlink = new Runnable(){ public void run(){ if(caps){ capsBlinkOn=!capsBlinkOn; invalidate(); handler.postDelayed(this,420); } else { capsBlinkOn=false; invalidate(); } } };
     private static final float[] SOURCE_BANDS = {0f,122f,206f,342f,470f,600f,722f,856f};
@@ -299,12 +300,12 @@ public class FastKeyboardView extends View {
         Button steering = drawerButton("فرمان ماشین");
         Button arabic = drawerButton("حرکت‌ها و صداهای عربی");
         Button history = drawerButton("تاریخچه کلیپ‌بورد (۱۰۰)");
-        Button magnifierButton = drawerButton("ذره‌بین");
         Button mouse = drawerButton("موس صفحه وب");
         Button calculator = drawerButton("ماشین حساب");
+        Button keyboardSize = drawerButton("تغییر اندازه کیبورد");
 
         Button quickSettings = drawerButton("Quick Settings");
-        Button[] buttons={transparency,palette,emoji,steering,arabic,history,magnifierButton,mouse,calculator,quickSettings};
+        Button[] buttons={transparency,palette,emoji,steering,arabic,history,mouse,calculator,keyboardSize,quickSettings};
         for(Button b:buttons) list.addView(b);
 
         final PopupWindow popup = new PopupWindow(panel,
@@ -324,12 +325,9 @@ public class FastKeyboardView extends View {
         steering.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showSteeringWheel));
         arabic.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showArabicHarakat));
         history.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showClipboardHistory));
-        magnifierButton.setOnClickListener(v -> {
-            popup.dismiss();
-            service.launchScreenMagnifier();
-        });
         mouse.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showMouseControls));
         calculator.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showCalculator));
+        keyboardSize.setOnClickListener(v -> showAndKeepKeyboard(popup, this::showKeyboardSizePicker));
         quickSettings.setOnClickListener(v -> { popup.dismiss(); service.requestQuickSettingsTiles(); });
 
         popup.showAtLocation(this, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, dp(6));
@@ -340,6 +338,55 @@ public class FastKeyboardView extends View {
 
 
 
+
+    private void showKeyboardSizePicker() {
+        LinearLayout root = new LinearLayout(service);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(12), dp(10), dp(12), dp(10));
+        root.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(service);
+        title.setText("تغییر اندازه کیبورد");
+        title.setTextSize(20);
+        title.setTextColor(BLACK);
+        title.setGravity(Gravity.CENTER);
+        root.addView(title, new LinearLayout.LayoutParams(-1, dp(52)));
+
+        String[] labels = {"100% عادی", "75%", "50%", "40%"};
+        float[] scales = {1.0f, 0.75f, 0.50f, 0.40f};
+        PopupWindow popup = new PopupWindow(root, Math.min(dp(360), Math.max(dp(280), getWidth()-dp(24))),
+                WindowManager.LayoutParams.WRAP_CONTENT, true);
+        for (int i = 0; i < labels.length; i++) {
+            final int index = i;
+            Button b = drawerButton(labels[i]);
+            b.setOnClickListener(v -> {
+                setQuickSizeIndexForScale(scales[index]);
+                service.setKeyboardScale(scales[index]);
+                invalidate();
+                popup.dismiss();
+            });
+            root.addView(b);
+        }
+        popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+        popup.setOutsideTouchable(true);
+        popup.setTouchable(true);
+        popup.setElevation(8f);
+        popup.showAtLocation(this, Gravity.CENTER, 0, 0);
+    }
+
+    private void setQuickSizeIndexForScale(float scale) {
+        if (Math.abs(scale-1.0f)<0.01f) quickSizeIndex=0;
+        else if (Math.abs(scale-0.75f)<0.01f) quickSizeIndex=1;
+        else if (Math.abs(scale-0.50f)<0.01f) quickSizeIndex=2;
+        else quickSizeIndex=3;
+    }
+
+    private void cycleKeyboardSize() {
+        quickSizeIndex = (quickSizeIndex + 1) % 4;
+        float[] scales = {1.0f, 0.75f, 0.50f, 0.40f};
+        service.setKeyboardScale(scales[quickSizeIndex]);
+        invalidate();
+    }
 
     private void showCalculator() {
         LinearLayout root = new LinearLayout(service);
@@ -828,15 +875,15 @@ public class FastKeyboardView extends View {
     }
 
     private void drawTopToolbar(Canvas c,float top,float bottom){
-        float[] weights={0.061f,0.061f,0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.084f};
+        float[] weights={0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.070f,0.084f};
         float gapPx=dp(4), totalGap=gapPx*(weights.length-1), total=0; for(float q:weights) total+=q;
         float scale=(getWidth()-totalGap)/total, x=0;
-        String[] labels={"↓","↑","MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","Hidden"};
+        String[] labels={"MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","اندازه","Hidden"};
         for(int i=0;i<labels.length;i++){
             float cw=weights[i]*scale;
             if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
-            else if(i==11){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
-            else if(i==3 || i==4) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
+            else if(i==9){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
+            else if(i==1 || i==2) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
@@ -1170,7 +1217,7 @@ public class FastKeyboardView extends View {
         float g=dp(4);
 
         if(row==0){
-            float[] weights={0.061f,0.061f,0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.084f};
+            float[] weights={0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.070f,0.084f};
             float total=0; for(float q:weights) total+=q;
             float scale=(getWidth()-g*(weights.length-1))/total, pos=0;
             for(float q:weights){ float cw=q*scale; if(x>=pos&&x<=pos+cw) return new RectF(pos,top,pos+cw,bottom); pos+=cw+g; }
@@ -1268,7 +1315,7 @@ public class FastKeyboardView extends View {
         return -1;
     }
     private int topToolbarIndex(float x){
-        float[] weights={0.061f,0.061f,0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.084f};
+        float[] weights={0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.070f,0.084f};
         float g=dp(4), total=0; for(float q:weights) total+=q;
         float scale=(getWidth()-g*(weights.length-1))/total, pos=0;
         for(int i=0;i<weights.length;i++){ float cw=weights[i]*scale; if(x>=pos && x<=pos+cw) return i; pos+=cw+g; }
@@ -1297,19 +1344,18 @@ public class FastKeyboardView extends View {
         if(row==0){
             // Normalized zones taken directly from the supplied reference image.
             int i=topToolbarIndex(x); if(i<0) return;
-            if(i==0) service.goToHome();
-            else if(i==1) service.goToEnd();
-            else if(i==2) service.voiceSearch(englishMode?"en-US":"fa-IR");
-            else if(i==3) service.copyAll();
-            else if(i==4) service.copyScreen();
-            else if(i==5) service.paste();
-            else if(i==6) service.cut();
-            else if(i==7){service.undo();startUndoRepeat();}
-            else if(i==8){service.redo();startRedoRepeat();}
-            else if(i==9) showClipboardHistory();
-            else if(i==10) showDrawer();
-            else if(i==11) showMouseControls();
-            else if(i==12){ hideTopRow=true; invalidate(); }
+            if(i==0) service.voiceSearch(englishMode?"en-US":"fa-IR");
+            else if(i==1) service.copyAll();
+            else if(i==2) service.copyScreen();
+            else if(i==3) service.paste();
+            else if(i==4) service.cut();
+            else if(i==5){service.undo();startUndoRepeat();}
+            else if(i==6){service.redo();startRedoRepeat();}
+            else if(i==7) showClipboardHistory();
+            else if(i==8) showDrawer();
+            else if(i==9) showMouseControls();
+            else if(i==10) cycleKeyboardSize();
+            else if(i==11){ hideTopRow=true; invalidate(); }
             return;
         }
         if(row==1){

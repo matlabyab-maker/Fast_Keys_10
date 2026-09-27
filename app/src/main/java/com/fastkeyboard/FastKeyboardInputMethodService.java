@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
+import android.view.WindowManager;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -48,6 +49,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     private long lastTypeTime = 0L;
     private long lastDeleteTime = 0L;
     private boolean applyingHistory = false;
+    private float keyboardScale = 1.0f;
 
     private void pushUndo(String inserted, String deleted, boolean mergeTyped) {
         if (applyingHistory || ((inserted == null || inserted.isEmpty()) && (deleted == null || deleted.isEmpty()))) return;
@@ -133,6 +135,31 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         root.addView(keyboard);
         return root;
     }
+
+    public void setKeyboardScale(float scale) {
+        keyboardScale = Math.max(0.40f, Math.min(1.0f, scale));
+        if (keyboard == null) return;
+        int keyboardHeight = dp(380f * keyboardScale);
+        ViewGroup.LayoutParams kp = keyboard.getLayoutParams();
+        if (kp == null) kp = new LinearLayout.LayoutParams(-1, keyboardHeight);
+        kp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        kp.height = keyboardHeight;
+        keyboard.setLayoutParams(kp);
+        try {
+            android.app.Dialog dialog = getWindow();
+            if (dialog != null && dialog.getWindow() != null) {
+                WindowManager.LayoutParams wp = dialog.getWindow().getAttributes();
+                wp.width = WindowManager.LayoutParams.MATCH_PARENT;
+                wp.height = keyboardHeight + (relatedBar != null && relatedBar.getVisibility() == View.VISIBLE ? dp(40) : 0);
+                wp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+                dialog.getWindow().setAttributes(wp);
+            }
+        } catch (Exception ignored) {}
+        keyboard.requestLayout();
+        keyboard.invalidate();
+    }
+
+    public float getKeyboardScale() { return keyboardScale; }
 
     @Override public boolean onEvaluateFullscreenMode() {
         // Fast Keyboard is designed as an ordinary bottom-of-screen keyboard.
