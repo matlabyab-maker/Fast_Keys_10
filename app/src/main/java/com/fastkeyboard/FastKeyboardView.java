@@ -26,8 +26,12 @@ public class FastKeyboardView extends View {
     // User-controlled keyboard resize mode. Height is persisted locally.
     private boolean resizeMode = false;
     private boolean resizingKeyboard = false;
+    private float resizeStartX = 0f;
     private float resizeStartY = 0f;
+    private int resizeStartWidth = 0;
     private int resizeStartHeight = 0;
+    private final int minWidthDp = 240;
+    private final int maxWidthDp = 900;
     private final int defaultHeightDp = 320;
     private final int minHeightDp = 220;
     private final int maxHeightDp = 620;
@@ -365,6 +369,26 @@ public class FastKeyboardView extends View {
     }
 
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
+
+    private void applyKeyboardSizePx(int widthPx, int heightPx) {
+        android.view.ViewGroup.LayoutParams lp = getLayoutParams();
+        if (lp == null) lp = new android.view.ViewGroup.LayoutParams(widthPx, heightPx);
+        lp.width = widthPx;
+        lp.height = heightPx;
+        setLayoutParams(lp);
+        requestLayout();
+        invalidate();
+        float density = getResources().getDisplayMetrics().density;
+        int widthDp = Math.round(widthPx / density);
+        int heightDp = Math.round(heightPx / density);
+        service.getSharedPreferences("fast_keyboard_settings",0).edit()
+                .putInt("keyboard_width_dp", widthDp)
+                .putInt("keyboard_height_dp", heightDp).apply();
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(value, max));
+    }
 
     private void applyKeyboardHeightDp(int heightDp) {
         int clamped = Math.max(minHeightDp, Math.min(maxHeightDp, heightDp));
@@ -838,7 +862,7 @@ public class FastKeyboardView extends View {
         float x=gapPx;
         for(int i=0;i<widths.length;i++){
             float cw=usable*widths[i];
-            String text=i<4 && i<suggestions.length?suggestions[i]:i==4?"Hidden":"ثابت";
+            String text=i<4 && i<suggestions.length?suggestions[i]:i==4?"Hidden":"Resize";
             key(c,x,top,x+cw,bottom,text,NAVY,false);
             x+=cw+gapPx;
         }
@@ -1159,20 +1183,32 @@ public class FastKeyboardView extends View {
 
         if (resizeMode) {
             if (e.getAction() == MotionEvent.ACTION_DOWN) {
-                float grip = Math.max(42f, dp(34));
-                if ((x >= getWidth() - grip && y >= getHeight() - grip) || y >= getHeight() - dp(70)) {
+                float grip = dp(36);
+                boolean onResizeHandle =
+                        x >= getWidth() - grip &&
+                        y >= getHeight() - grip;
+                if (onResizeHandle) {
                     resizingKeyboard = true;
-                    resizeStartY = y;
+                    resizeStartX = e.getRawX();
+                    resizeStartY = e.getRawY();
+                    resizeStartWidth = getWidth();
                     resizeStartHeight = getHeight();
                     return true;
                 }
-                // In resize mode, taps outside the grip do not activate keyboard keys.
                 return true;
             }
             if (e.getAction() == MotionEvent.ACTION_MOVE && resizingKeyboard) {
-                int newPx = resizeStartHeight + Math.round(y - resizeStartY);
-                int newDp = Math.round(newPx / getResources().getDisplayMetrics().density);
-                applyKeyboardHeightDp(newDp);
+                float dx = e.getRawX() - resizeStartX;
+                float dy = e.getRawY() - resizeStartY;
+                int newWidth = clamp(
+                        resizeStartWidth + Math.round(dx),
+                        dp(minWidthDp),
+                        dp(maxWidthDp));
+                int newHeight = clamp(
+                        resizeStartHeight + Math.round(dy),
+                        dp(minHeightDp),
+                        dp(maxHeightDp));
+                applyKeyboardSizePx(newWidth, newHeight);
                 return true;
             }
             if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL) {
