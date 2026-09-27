@@ -16,6 +16,14 @@ import java.util.*;
 public class FastKeyboardView extends View {
     private final FastKeyboardInputMethodService service;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Window-level resize: handles are active only while Resize mode is enabled.
+    private boolean resizeMode = false;
+    private boolean resizing = false;
+    private int resizeEdges = 0;
+    private float resizeStartX, resizeStartY;
+    private int resizeStartW, resizeStartH;
+    private static final int EDGE_LEFT=1, EDGE_RIGHT=2, EDGE_TOP=4, EDGE_BOTTOM=8;
+    private final Paint resizePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     // Pressed-key visual feedback: follows the supplied reference implementation.
     private final Paint pressedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -793,6 +801,7 @@ public class FastKeyboardView extends View {
         keyH=Math.max(1f,h/7f);
         suggestionH=keyH*0.62f;
         drawKeyboard(c);
+        drawResizeOverlay(c);
     }
 
     private float[] visibleRowBounds(){
@@ -840,6 +849,9 @@ public class FastKeyboardView extends View {
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
+        float bw=dp(54), bh=Math.min(dp(28), Math.max(dp(20), bottom-top-dp(4)));
+        float bl=getWidth()-bw-dp(4), bt=top+dp(2);
+        key(c,bl,bt,getWidth()-dp(4),bt+bh,resizeMode?"Resize*":"Resize",NAVY,false);
     }
 
     private void keyToolbarText(Canvas c,float l,float t,float r,float b,String label,int color,float size){
@@ -1211,8 +1223,61 @@ public class FastKeyboardView extends View {
         return null;
     }
 
+    private int dp(float x){ return (int)(x*getResources().getDisplayMetrics().density+0.5f); }
+
+    private int resizeEdgeAt(float x, float y){
+        if(!resizeMode) return 0;
+        float h=dp(22);
+        int e=0;
+        if(x<=h) e|=EDGE_LEFT;
+        if(x>=getWidth()-h) e|=EDGE_RIGHT;
+        if(y<=h) e|=EDGE_TOP;
+        if(y>=getHeight()-h) e|=EDGE_BOTTOM;
+        return e;
+    }
+
+    private boolean handleResizeTouch(MotionEvent e){
+        if(e.getAction()==MotionEvent.ACTION_DOWN){
+            int edge=resizeEdgeAt(e.getX(),e.getY());
+            if(edge!=0){
+                resizing=true; resizeEdges=edge;
+                resizeStartX=e.getRawX(); resizeStartY=e.getRawY();
+                resizeStartW=getWidth(); resizeStartH=getHeight();
+                pressedKey=null; stopRepeat(); invalidate(); return true;
+            }
+        } else if(resizing && (e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL)){
+            if(e.getAction()==MotionEvent.ACTION_MOVE){
+                float dx=e.getRawX()-resizeStartX, dy=e.getRawY()-resizeStartY;
+                int w=resizeStartW, h=resizeStartH;
+                if((resizeEdges&EDGE_LEFT)!=0) w=resizeStartW-(int)dx;
+                if((resizeEdges&EDGE_RIGHT)!=0) w=resizeStartW+(int)dx;
+                if((resizeEdges&EDGE_TOP)!=0) h=resizeStartH-(int)dy;
+                if((resizeEdges&EDGE_BOTTOM)!=0) h=resizeStartH+(int)dy;
+                int minW=dp(240), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
+                int minH=dp(220), maxH=dp(800);
+                w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
+                service.applyImeWindowSize(w,h); invalidate(); return true;
+            }
+            resizing=false; resizeEdges=0; invalidate(); return true;
+        }
+        return false;
+    }
+
+    private void drawResizeOverlay(Canvas c){
+        if(!resizeMode) return;
+        float s=dp(18);
+        c.drawLine(2,s,2,2,resizePaint); c.drawLine(2,2,s,2,resizePaint);
+        c.drawLine(getWidth()-2,s,getWidth()-2,2,resizePaint); c.drawLine(getWidth()-s,2,getWidth()-2,2,resizePaint);
+        c.drawLine(2,getHeight()-s,2,getHeight()-2,resizePaint); c.drawLine(2,getHeight()-2,s,getHeight()-2,resizePaint);
+        c.drawLine(getWidth()-2,getHeight()-s,getWidth()-2,getHeight()-2,resizePaint); c.drawLine(getWidth()-s,getHeight()-2,getWidth()-2,getHeight()-2,resizePaint);
+    }
+
     @Override public boolean onTouchEvent(MotionEvent e){
         float x = e.getX(), y = e.getY();
+        if(e.getAction()==MotionEvent.ACTION_UP && y < dp(60) && x >= getWidth()-dp(62)){
+            resizeMode=!resizeMode; resizing=false; resizeEdges=0; invalidate(); return true;
+        }
+        if(handleResizeTouch(e)) return true;
 
         if(e.getAction()==MotionEvent.ACTION_DOWN){
             stopRepeat();

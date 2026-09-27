@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
+import android.view.WindowManager;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -102,6 +103,9 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         keyboard.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
 
+        // Initial IME window size. Resize changes this WindowManager.LayoutParams directly.
+        applyImeWindowSize(dp(380));
+
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(android.graphics.Color.WHITE);
@@ -129,6 +133,30 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         root.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
         root.addView(keyboard);
         return root;
+    }
+
+    public void applyImeWindowSize(int heightPx) {
+        try {
+            android.app.Dialog dialog = getWindow();
+            if (dialog == null || dialog.getWindow() == null) return;
+            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+            lp.height = heightPx;
+            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            dialog.getWindow().setAttributes(lp);
+        } catch (Exception ignored) {}
+    }
+
+    public void applyImeWindowSize(int widthPx, int heightPx) {
+        try {
+            android.app.Dialog dialog = getWindow();
+            if (dialog == null || dialog.getWindow() == null) return;
+            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+            lp.width = Math.max(dp(240), widthPx);
+            lp.height = Math.max(dp(220), heightPx);
+            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            dialog.getWindow().setAttributes(lp);
+        } catch (Exception ignored) {}
     }
 
     @Override public boolean onEvaluateFullscreenMode() {
