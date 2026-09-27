@@ -100,6 +100,12 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     }
 
     @Override public View onCreateInputView() {
+        try {
+            android.app.Dialog dialog = getWindow();
+            if (dialog != null && dialog.getWindow() != null) {
+                dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+            }
+        } catch (Exception ignored) {}
         keyboard = new FastKeyboardView(this);
         keyboard.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
