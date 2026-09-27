@@ -847,17 +847,11 @@ public class FastKeyboardView extends View {
 
     @Override protected void onDraw(Canvas c){
         super.onDraw(c);
-        float scale = service.getKeyboardScale();
-        // The View remains full height; only its keyboard contents are scaled.
-        // This preserves every lower row instead of clipping it.
-        c.save();
-        c.scale(scale, scale, 0f, 0f);
         float w=getWidth(),h=getHeight();
         gap=dp(4);
         keyH=Math.max(1f,h/7f);
         suggestionH=keyH*0.62f;
         drawKeyboard(c);
-        c.restore();
     }
 
     private float[] visibleRowBounds(){
@@ -899,7 +893,7 @@ public class FastKeyboardView extends View {
         String[] labels={"MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","اندازه","Hidden"};
         for(int i=0;i<labels.length;i++){
             float cw=weights[i]*scale;
-            if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
+            if(i==0){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
             else if(i==9){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
             else if(i==10){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawSizeWheel(c,x,top,x+cw,bottom); }
             else if(i==1 || i==2) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
@@ -1307,7 +1301,7 @@ public class FastKeyboardView extends View {
     }
 
     @Override public boolean onTouchEvent(MotionEvent e){
-        float x = e.getX(), y = e.getY() / Math.max(0.40f, service.getKeyboardScale());
+        float x = e.getX(), y = e.getY();
         if(e.getAction()==MotionEvent.ACTION_DOWN){
             stopRepeat();
             pressRectFor(x, y, true);

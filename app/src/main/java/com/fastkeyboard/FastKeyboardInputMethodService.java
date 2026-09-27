@@ -139,11 +139,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     public void setKeyboardScale(float scale) {
         keyboardScale = Math.max(0.40f, Math.min(1.0f, scale));
         if (keyboard == null) return;
-
-        // Keep the IME window and the keyboard View at their normal height.
-        // Only the keyboard drawing is scaled inside that fixed area, so the
-        // lower rows are never clipped when 75%, 50% or 40% is selected.
-        int keyboardHeight = dp(380f);
+        int keyboardHeight = dp(380f * keyboardScale);
         ViewGroup.LayoutParams kp = keyboard.getLayoutParams();
         if (kp == null) kp = new LinearLayout.LayoutParams(-1, keyboardHeight);
         kp.width = ViewGroup.LayoutParams.MATCH_PARENT;
