@@ -140,38 +140,55 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         return root;
     }
 
-    public void applyImeWindowSize(int heightPx) {
+    // Window bounds are expressed in screen coordinates. The IME uses BOTTOM|LEFT
+    // gravity, so x grows to the right and y grows upward from the bottom edge.
+    private int getSafeScreenWidth() {
+        return Math.max(1, getResources().getDisplayMetrics().widthPixels);
+    }
+
+    private int getSafeScreenHeight() {
+        return Math.max(1, getResources().getDisplayMetrics().heightPixels);
+    }
+
+    private int getMaxImeHeight() {
+        // Keep the IME inside the usable screen area. This is intentionally
+        // bounded instead of allowing an oversized WindowManager height.
+        return Math.max(dp(250), (int)(getSafeScreenHeight() * 0.60f));
+    }
+
+    public void updateKeyboardSize(int newWidth, int newHeight) {
         try {
             android.app.Dialog dialog = getWindow();
             if (dialog == null || dialog.getWindow() == null) return;
             WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-            lp.height = heightPx;
+
+            int sw = getSafeScreenWidth();
+            int sh = getSafeScreenHeight();
+            int minW = dp(400);
+            int minH = dp(250);
+            int constrainedW = Math.max(minW, Math.min(newWidth, sw));
+            int constrainedH = Math.max(minH, Math.min(newHeight, getMaxImeHeight()));
+
+            lp.width = constrainedW;
+            lp.height = constrainedH;
             lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+
+            // Keep the complete window inside the screen after every resize.
+            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - constrainedW)));
+            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - constrainedH)));
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
         } catch (Exception ignored) {}
     }
 
+    public void applyImeWindowSize(int heightPx) {
+        int width = getResources().getDisplayMetrics().widthPixels;
+        updateKeyboardSize(width, heightPx);
+    }
+
     public void applyImeWindowSize(int widthPx, int heightPx) {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog == null || dialog.getWindow() == null) return;
-            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-            lp.width = Math.max(dp(240), widthPx);
-            lp.height = Math.max(dp(220), heightPx);
-            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-            int sw = getResources().getDisplayMetrics().widthPixels;
-            int sh = getResources().getDisplayMetrics().heightPixels;
-            int actualW = Math.min(sw, lp.width);
-            int actualH = Math.min(sh, lp.height);
-            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - actualW)));
-            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - actualH)));
-            lp.x = imeX;
-            lp.y = imeY;
-            dialog.getWindow().setAttributes(lp);
-        } catch (Exception ignored) {}
+        updateKeyboardSize(widthPx, heightPx);
     }
 
     public void moveImeWindowBy(int dx, int dy) {
@@ -179,14 +196,18 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             android.app.Dialog dialog = getWindow();
             if (dialog == null || dialog.getWindow() == null) return;
             WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-            int sw = getResources().getDisplayMetrics().widthPixels;
-            int sh = getResources().getDisplayMetrics().heightPixels;
-            int w = lp.width == WindowManager.LayoutParams.MATCH_PARENT ? sw : lp.width;
+            int sw = getSafeScreenWidth();
+            int sh = getSafeScreenHeight();
+            int w = lp.width > 0 && lp.width != WindowManager.LayoutParams.MATCH_PARENT ? lp.width : sw;
             int h = lp.height > 0 ? lp.height : dp(380);
+
+            // With BOTTOM gravity, a positive screen-space drag downward means
+            // decreasing LayoutParams.y. Clamp both axes so no part leaves screen.
             imeX += dx;
             imeY -= dy;
             imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - Math.min(sw, w))));
             imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - Math.min(sh, h))));
+
             lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
             lp.x = imeX;
             lp.y = imeY;

@@ -1285,10 +1285,10 @@ public class FastKeyboardView extends View {
                 if((resizeEdges&EDGE_RIGHT)!=0) w=resizeStartW+(int)dx;
                 if((resizeEdges&EDGE_TOP)!=0) h=resizeStartH-(int)dy;
                 if((resizeEdges&EDGE_BOTTOM)!=0) h=resizeStartH+(int)dy;
-                int minW=dp(240), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
-                int minH=dp(220), maxH=Math.max(minH, getResources().getDisplayMetrics().heightPixels-dp(24));
+                int minW=dp(400), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
+                int minH=dp(250), maxH=Math.max(minH,(int)(getResources().getDisplayMetrics().heightPixels*0.60f));
                 w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
-                service.applyImeWindowSize(w,h); invalidate(); return true;
+                service.updateKeyboardSize(w,h); invalidate(); return true;
             }
             resizing=false; resizeEdges=0; invalidate(); return true;
         }
