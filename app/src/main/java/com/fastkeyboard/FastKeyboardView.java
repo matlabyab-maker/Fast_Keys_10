@@ -881,7 +881,7 @@ public class FastKeyboardView extends View {
         String[] labels={"MIC","Copy\nAll","Copy\nScreen","Paste","Cut","Undo","Redo","100\nHistory","امکانات","","اندازه","Hidden"};
         for(int i=0;i<labels.length;i++){
             float cw=weights[i]*scale;
-            if(i==2){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
+            if(i==0){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMicrophone(c,x,top,x+cw,bottom); }
             else if(i==9){ key(c,x,top,x+cw,bottom,"",NAVY,false); drawMousePointer(c,x,top,x+cw,bottom); }
             else if(i==1 || i==2) keyToolbarText(c,x,top,x+cw,bottom,labels[i],NAVY,Math.min(11f, Math.max(8f, cw*0.13f)));
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
@@ -1481,7 +1481,9 @@ public class FastKeyboardView extends View {
         Button stop=drawerButton("خاموش کردن موس");
         stop.setOnClickListener(v -> FastKeyboardAccessibilityService.disable());
         root.addView(stop);
-        final PopupWindow popup=new PopupWindow(root,Math.max(dp(280),getWidth()-dp(16)),Math.min(dp(600),Math.max(dp(420),getHeight()-dp(12))),false);
+        int screenH = service.getResources().getDisplayMetrics().heightPixels;
+        int mousePopupH = Math.min(dp(600), Math.max(dp(420), screenH - dp(24)));
+        final PopupWindow popup=new PopupWindow(root,Math.max(dp(280),getWidth()-dp(16)),mousePopupH,false);
         popup.setBackgroundDrawable(new ColorDrawable(Color.WHITE)); popup.setTouchable(true); popup.setFocusable(false); popup.setOutsideTouchable(true);
         popup.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED); popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING); popup.setElevation(10f);
         headerClose[0].setOnClickListener(v->popup.dismiss()); popup.showAtLocation(this,Gravity.CENTER,0,0);

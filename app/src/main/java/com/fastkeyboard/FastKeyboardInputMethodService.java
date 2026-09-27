@@ -139,7 +139,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     public void setKeyboardScale(float scale) {
         keyboardScale = Math.max(0.40f, Math.min(1.0f, scale));
         if (keyboard == null) return;
-        int keyboardHeight = dp(380f * keyboardScale);
+        int keyboardHeight = Math.max(dp(180), dp(380f * keyboardScale));
         ViewGroup.LayoutParams kp = keyboard.getLayoutParams();
         if (kp == null) kp = new LinearLayout.LayoutParams(-1, keyboardHeight);
         kp.width = ViewGroup.LayoutParams.MATCH_PARENT;
