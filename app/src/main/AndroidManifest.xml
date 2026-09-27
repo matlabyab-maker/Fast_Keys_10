@@ -2,7 +2,7 @@
 <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/><application android:theme="@style/AppTheme" android:label="Fast Keyboard" android:allowBackup="false" android:supportsRtl="true"><activity android:name=".MainActivity" android:exported="true">
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/><application android:theme="@style/AppTheme" android:label="Fast Keyboard" android:icon="@drawable/ic_launcher_temp" android:roundIcon="@drawable/ic_launcher_temp" android:allowBackup="false" android:supportsRtl="true"><activity android:name=".MainActivity" android:exported="true">
 <intent-filter>
 <action android:name="android.intent.action.MAIN"/>
 <category android:name="android.intent.category.LAUNCHER"/>

@@ -56,6 +56,8 @@ public class FastKeyboardView extends View {
     private final Runnable capsBlink = new Runnable(){ public void run(){ if(caps){ capsBlinkOn=!capsBlinkOn; invalidate(); handler.postDelayed(this,420); } else { capsBlinkOn=false; invalidate(); } } };
     private static final float[] SOURCE_BANDS = {0f,122f,206f,342f,470f,600f,722f,856f};
     private int KEY;
+    // Exact rectangles used both for drawing and touch hit-testing of the middle English row.
+    private final ArrayList<RectF> middleEnglishKeyRects = new ArrayList<>();
 
     public FastKeyboardView(FastKeyboardInputMethodService s){
         super(s);
@@ -840,11 +842,18 @@ public class FastKeyboardView extends View {
                 ? (first?new String[]{"Q","W","E","R","T","Y","U","I","O","P","[", "]","\\"}:new String[]{"Caps","A","S","D","F","G","H","J","K","L",";","'"})
                 : (first?new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ","پ"}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"});
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
+        if(!first && englishMode){
+            middleEnglishKeyRects.clear();
+        }
         for(int i=0;i<count;i++){
             float l=left+i*(cw+gapPx);
+            float r=l+cw;
+            if(!first && englishMode){
+                middleEnglishKeyRects.add(new RectF(l,top,r,bottom));
+            }
             if(!first && i==0 && englishMode && caps && capsBlinkOn){
-                keyWithBackground(c,l,top,l+cw,bottom,keys[i],Color.WHITE,GREEN,false);
-            } else key(c,l,top,l+cw,bottom,keys[i],NAVY,false);
+                keyWithBackground(c,l,top,r,bottom,keys[i],Color.WHITE,GREEN,false);
+            } else key(c,l,top,r,bottom,keys[i],NAVY,false);
         }
         if(!first) keyWithBackground(c,getWidth()-reserved,top,getWidth()-gapPx,bottom,"Enter",NAVY,ENTER_BG,false);
     }
@@ -1227,8 +1236,17 @@ public class FastKeyboardView extends View {
         }
         if(row==4){
             if(nx>0.91f){service.enter();return;}
-            String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'",""}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"};
-            int i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
+            String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"};
+            int i=-1;
+            if(englishMode && middleEnglishKeyRects.size()==keys.length){
+                // Use the exact rectangles created during drawing, so touch and visual key
+                // boundaries cannot drift apart.
+                for(int k=0;k<middleEnglishKeyRects.size();k++){
+                    if(middleEnglishKeyRects.get(k).contains(x,y)){ i=k; break; }
+                }
+            } else {
+                i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
+            }
             if(i<0 || i>=keys.length) return;
             if(i==0){caps=!caps; if(caps){ capsBlinkOn=true; handler.removeCallbacks(capsBlink); handler.postDelayed(capsBlink,420); } else { capsBlinkOn=false; handler.removeCallbacks(capsBlink); } invalidate();return;}
             if(englishMode && keys[i].isEmpty()) return;
