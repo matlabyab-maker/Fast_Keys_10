@@ -22,6 +22,7 @@ import android.os.SystemClock;
 import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.FrameLayout;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -42,6 +43,10 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     private static final String PREF_X = "x";
     private static final String PREF_Y = "y";
     private boolean restoringImeSize = false;
+    private FrameLayout imeRoot;
+    private LinearLayout keyboardBody;
+    private int editWidth = 0;
+    private int editHeight = 0;
     private final LinkedList<String> clipboardHistory = new LinkedList<>();
     private ClipboardManager clipboardManager;
     private ClipboardManager.OnPrimaryClipChangedListener clipListener;
@@ -106,10 +111,11 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
         // Do not reset the user's saved window size when suggestions appear.
         // Only ensure enough height for the suggestion row when it is visible.
-        int currentH = getCurrentImeHeight();
-        int neededH = any ? dp(420) : dp(250);
-        if (any && currentH < neededH) updateKeyboardSize(getCurrentImeWidth(), neededH);
-        else if (keyboard != null) keyboard.requestLayout();
+        if (keyboardBody != null) {
+            int neededH = any ? dp(420) : dp(250);
+            if (editHeight < neededH) setEditingKeyboardSize(editWidth, neededH);
+            else keyboardBody.requestLayout();
+        } else if (keyboard != null) keyboard.requestLayout();
     }
 
     @Override public View onCreateInputView() {
@@ -119,11 +125,15 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         // WindowManager height becomes smaller or larger.
         keyboard = new FastKeyboardView(this);
 
-        LinearLayout root=new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setLayoutParams(new ViewGroup.LayoutParams(
+        imeRoot=new FrameLayout(this);
+        imeRoot.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        root.setBackgroundColor(android.graphics.Color.WHITE);
+        imeRoot.setBackgroundColor(android.graphics.Color.WHITE);
+
+        keyboardBody=new LinearLayout(this);
+        keyboardBody.setOrientation(LinearLayout.VERTICAL);
+        keyboardBody.setGravity(Gravity.BOTTOM);
+        keyboardBody.setBackgroundColor(android.graphics.Color.WHITE);
 
         relatedBar=new LinearLayout(this);
         relatedBar.setOrientation(LinearLayout.HORIZONTAL);
@@ -145,23 +155,52 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             relatedBar.addView(tv,lp);
             tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
         }
-        root.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
-        // Weight keeps every keyboard row inside the real window bounds after Resize.
+        keyboardBody.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
         LinearLayout.LayoutParams keyboardLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        root.addView(keyboard, keyboardLp);
+        keyboardBody.addView(keyboard, keyboardLp);
 
-        // Restore the last user-selected size. If no size has been saved yet,
-        // use the normal full-width 380dp keyboard.
         android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         int savedW = prefs.getInt(PREF_WIDTH, getSafeScreenWidth());
         int savedH = prefs.getInt(PREF_HEIGHT, dp(380));
         imeX = prefs.getInt(PREF_X, 0);
         imeY = prefs.getInt(PREF_Y, 0);
+        editWidth=Math.max(dp(400), Math.min(savedW,getSafeScreenWidth()));
+        editHeight=Math.max(dp(250), Math.min(savedH,getMaxImeHeight()));
+        FrameLayout.LayoutParams bodyLp=new FrameLayout.LayoutParams(editWidth,editHeight,Gravity.BOTTOM|Gravity.LEFT);
+        bodyLp.leftMargin=imeX;
+        bodyLp.bottomMargin=imeY;
+        imeRoot.addView(keyboardBody,bodyLp);
+
         restoringImeSize = true;
-        updateKeyboardSize(savedW, savedH);
+        updateKeyboardSize(editWidth, editHeight);
         restoringImeSize = false;
-        return root;
+        // Keep the editable body in sync with the restored size without changing
+        // the IME window again during ordinary touch/layout passes.
+        setEditingKeyboardSize(editWidth, editHeight);
+        return imeRoot;
+    }
+
+    public void setEditingKeyboardSize(int newWidth, int newHeight) {
+        if (keyboardBody == null || imeRoot == null) return;
+        int w=Math.max(dp(400), Math.min(newWidth,getSafeScreenWidth()));
+        int h=Math.max(dp(250), Math.min(newHeight,getMaxImeHeight()));
+        editWidth=w; editHeight=h;
+        ViewGroup.LayoutParams raw=keyboardBody.getLayoutParams();
+        if (!(raw instanceof FrameLayout.LayoutParams)) {
+            raw=new FrameLayout.LayoutParams(w,h,Gravity.BOTTOM|Gravity.LEFT);
+        }
+        FrameLayout.LayoutParams lp=(FrameLayout.LayoutParams)raw;
+        lp.width=w; lp.height=h; lp.gravity=Gravity.BOTTOM|Gravity.LEFT;
+        lp.leftMargin=Math.max(0,Math.min(imeX,Math.max(0,getSafeScreenWidth()-w)));
+        lp.bottomMargin=Math.max(0,Math.min(imeY,Math.max(0,getSafeScreenHeight()-h)));
+        keyboardBody.setLayoutParams(lp);
+        keyboardBody.requestLayout();
+    }
+
+    public void saveEditedKeyboardSize() {
+        updateKeyboardSize(editWidth,editHeight);
+        setEditingKeyboardSize(editWidth,editHeight);
     }
 
     // Window bounds are expressed in screen coordinates. The IME uses BOTTOM|LEFT
@@ -214,6 +253,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             int minH = dp(250);
             int constrainedW = Math.max(minW, Math.min(newWidth, sw));
             int constrainedH = Math.max(minH, Math.min(newHeight, getMaxImeHeight()));
+            editWidth=constrainedW; editHeight=constrainedH;
 
             lp.width = constrainedW;
             lp.height = constrainedH;
@@ -225,6 +265,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
+            if (keyboardBody != null) setEditingKeyboardSize(editWidth, editHeight);
 
             // Persist the actual constrained size and position so recreating the IME
             // does not return to the default dimensions.
@@ -290,6 +331,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
+            if (keyboardBody != null) setEditingKeyboardSize(editWidth > 0 ? editWidth : w, editHeight > 0 ? editHeight : h);
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                     .putInt(PREF_X, imeX)
                     .putInt(PREF_Y, imeY)
@@ -336,6 +378,7 @@ public class FastKeyboardInputMethodService extends InputMethodService {
                     .remove(PREF_X).remove(PREF_Y).apply();
             restoringImeSize = true;
             updateKeyboardSize(getSafeScreenWidth(), dp(380));
+            setEditingKeyboardSize(getSafeScreenWidth(), dp(380));
             restoringImeSize = false;
         } catch (Exception ignored) {}
     }
