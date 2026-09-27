@@ -9,7 +9,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Gravity;
-import android.view.WindowManager;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -22,7 +21,6 @@ import android.os.SystemClock;
 import android.widget.Toast;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.FrameLayout;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -34,19 +32,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     private LinearLayout relatedBar;
     private final TextView[] relatedViews = new TextView[3];
     private SpeechRecognizer speechRecognizer;
-    // Floating position of the IME window. x is from the left, y is from the bottom.
-    private int imeX = 0;
-    private int imeY = 0;
-    private static final String PREFS_NAME = "keyboard_prefs";
-    private static final String PREF_WIDTH = "width";
-    private static final String PREF_HEIGHT = "height";
-    private static final String PREF_X = "x";
-    private static final String PREF_Y = "y";
-    private boolean restoringImeSize = false;
-    private FrameLayout imeRoot;
-    private LinearLayout keyboardBody;
-    private int editWidth = 0;
-    private int editHeight = 0;
     private final LinkedList<String> clipboardHistory = new LinkedList<>();
     private ClipboardManager clipboardManager;
     private ClipboardManager.OnPrimaryClipChangedListener clipListener;
@@ -109,279 +94,44 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             if(!text.isEmpty()) any=true;
         }
         relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
-        // Never enlarge the internal body independently of the IME window.
-        // Doing that makes the upper part of the body extend beyond the real
-        // IME window and is exactly what causes the upper rows to be clipped.
-        // The keyboard view already scales all seven drawn rows to its actual
-        // measured height, so the saved/resized window remains the sole size
-        // authority.
-        if (keyboardBody != null) {
-            keyboardBody.requestLayout();
-            if (keyboard != null) keyboard.requestLayout();
-        } else if (keyboard != null) {
-            keyboard.requestLayout();
-        }
+        keyboard.requestLayout();
     }
 
     @Override public View onCreateInputView() {
-        // Keep the IME in the normal bottom keyboard area instead of fullscreen/extract mode.
-        // The keyboard itself fills the actual space available in the IME window.
-        // This is important during resize: a fixed child height can be clipped when the
-        // WindowManager height becomes smaller or larger.
         keyboard = new FastKeyboardView(this);
+        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
 
-        imeRoot=new FrameLayout(this);
-        imeRoot.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        imeRoot.setBackgroundColor(android.graphics.Color.WHITE);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(android.graphics.Color.WHITE);
 
-        keyboardBody=new LinearLayout(this);
-        keyboardBody.setOrientation(LinearLayout.VERTICAL);
-        keyboardBody.setGravity(Gravity.TOP);
-        keyboardBody.setWeightSum(1f);
-        keyboardBody.setBackgroundColor(android.graphics.Color.WHITE);
-
-        relatedBar=new LinearLayout(this);
+        relatedBar = new LinearLayout(this);
         relatedBar.setOrientation(LinearLayout.HORIZONTAL);
         relatedBar.setGravity(Gravity.CENTER_VERTICAL);
-        relatedBar.setPadding(dp(4),dp(3),dp(4),dp(3));
+        relatedBar.setPadding(dp(4), dp(3), dp(4), dp(3));
         relatedBar.setVisibility(View.GONE);
-        for(int i=0;i<3;i++){
-            final int index=i;
-            TextView tv=new TextView(this);
-            relatedViews[i]=tv;
+        for (int i = 0; i < 3; i++) {
+            final int index = i;
+            TextView tv = new TextView(this);
+            relatedViews[i] = tv;
             tv.setGravity(Gravity.CENTER);
             tv.setTextColor(android.graphics.Color.rgb(20,40,80));
             tv.setTextSize(13);
             tv.setSingleLine(true);
             tv.setBackgroundColor(android.graphics.Color.rgb(245,245,245));
             tv.setPadding(dp(6),0,dp(6),0);
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(34),1f);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,dp(34),1f);
             lp.setMargins(dp(3),0,dp(3),0);
             relatedBar.addView(tv,lp);
-            tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
+            tv.setOnClickListener(v -> {
+                String t = relatedViews[index].getText().toString();
+                if (!t.isEmpty()) replaceCurrentWord(t);
+            });
         }
-        keyboardBody.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
-        // The suggestion strip has a fixed height; the actual keyboard gets
-        // the entire remaining height through weight. This is the programmatic
-        // equivalent of XML height=0dp + layout_weight=1 and prevents fixed
-        // row heights from clipping when the keyboard is resized.
-        LinearLayout.LayoutParams keyboardLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
-        keyboardLp.weight = 1f;
-        keyboardBody.addView(keyboard, keyboardLp);
-
-        android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        int savedW = prefs.getInt(PREF_WIDTH, getSafeScreenWidth());
-        int savedH = prefs.getInt(PREF_HEIGHT, dp(380));
-        imeX = prefs.getInt(PREF_X, 0);
-        imeY = prefs.getInt(PREF_Y, 0);
-        editWidth=Math.max(dp(400), Math.min(savedW,getSafeScreenWidth()));
-        editHeight=Math.max(dp(250), Math.min(savedH,getMaxImeHeight()));
-        FrameLayout.LayoutParams bodyLp=new FrameLayout.LayoutParams(editWidth,editHeight,Gravity.BOTTOM|Gravity.LEFT);
-        bodyLp.leftMargin=imeX;
-        bodyLp.bottomMargin=imeY;
-        imeRoot.addView(keyboardBody,bodyLp);
-
-        restoringImeSize = true;
-        updateKeyboardSize(editWidth, editHeight);
-        restoringImeSize = false;
-        // Keep the editable body in sync with the restored size without changing
-        // the IME window again during ordinary touch/layout passes.
-        setEditingKeyboardSize(editWidth, editHeight);
-        return imeRoot;
-    }
-
-    public void setEditingKeyboardSize(int newWidth, int newHeight) {
-        if (keyboardBody == null || imeRoot == null) return;
-        int w=Math.max(dp(400), Math.min(newWidth,getSafeScreenWidth()));
-        int h=Math.max(dp(250), Math.min(newHeight,getMaxImeHeight()));
-        editWidth=w; editHeight=h;
-        ViewGroup.LayoutParams raw=keyboardBody.getLayoutParams();
-        if (!(raw instanceof FrameLayout.LayoutParams)) {
-            raw=new FrameLayout.LayoutParams(w,h,Gravity.BOTTOM|Gravity.LEFT);
-        }
-        FrameLayout.LayoutParams lp=(FrameLayout.LayoutParams)raw;
-        lp.width=w; lp.height=h; lp.gravity=Gravity.BOTTOM|Gravity.LEFT;
-        lp.leftMargin=Math.max(0,Math.min(imeX,Math.max(0,getSafeScreenWidth()-w)));
-        lp.bottomMargin=Math.max(0,Math.min(imeY,Math.max(0,getSafeScreenHeight()-h)));
-        keyboardBody.setLayoutParams(lp);
-        keyboardBody.requestLayout();
-    }
-
-    public void saveEditedKeyboardSize() {
-        updateKeyboardSize(editWidth,editHeight);
-        setEditingKeyboardSize(editWidth,editHeight);
-    }
-
-    // Window bounds are expressed in screen coordinates. The IME uses BOTTOM|LEFT
-    // gravity, so x grows to the right and y grows upward from the bottom edge.
-    private int getSafeScreenWidth() {
-        return Math.max(1, getResources().getDisplayMetrics().widthPixels);
-    }
-
-    private int getSafeScreenHeight() {
-        return Math.max(1, getResources().getDisplayMetrics().heightPixels);
-    }
-
-    private int getMaxImeHeight() {
-        // Keep the IME inside the usable screen area. This is intentionally
-        // bounded instead of allowing an oversized WindowManager height.
-        return Math.max(dp(250), (int)(getSafeScreenHeight() * 0.60f));
-    }
-
-    private int getCurrentImeWidth() {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                int w = dialog.getWindow().getAttributes().width;
-                if (w > 0 && w != WindowManager.LayoutParams.MATCH_PARENT) return w;
-            }
-        } catch (Exception ignored) {}
-        return getSafeScreenWidth();
-    }
-
-    private int getCurrentImeHeight() {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                int h = dialog.getWindow().getAttributes().height;
-                if (h > 0 && h != WindowManager.LayoutParams.MATCH_PARENT) return h;
-            }
-        } catch (Exception ignored) {}
-        return dp(380);
-    }
-
-    /** Resize the IME window and its internal body together during an active drag.
-     *  No MATCH_PARENT/fullscreen size is requested and the current bottom/left
-     *  position is preserved, preventing the upper rows from being clipped.
-     */
-    public void updateKeyboardSizeLive(int newWidth, int newHeight) {
-        try {
-            int sw = getSafeScreenWidth();
-            int minW = dp(400);
-            int minH = dp(250);
-            int w = Math.max(minW, Math.min(newWidth, sw));
-            int h = Math.max(minH, Math.min(newHeight, getMaxImeHeight()));
-
-            editWidth = w;
-            editHeight = h;
-
-            android.app.Dialog dialog = getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-                int sh = getSafeScreenHeight();
-                imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - w)));
-                imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - h)));
-                lp.width = w;
-                lp.height = h;
-                lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-                lp.x = imeX;
-                lp.y = imeY;
-                dialog.getWindow().setAttributes(lp);
-            }
-
-            // Match the internal body to the actual IME window immediately.
-            setEditingKeyboardSize(w, h);
-        } catch (Exception ignored) {}
-    }
-
-    public void updateKeyboardSize(int newWidth, int newHeight) {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog == null || dialog.getWindow() == null) return;
-            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-
-            int sw = getSafeScreenWidth();
-            int sh = getSafeScreenHeight();
-            int minW = dp(400);
-            int minH = dp(250);
-            int constrainedW = Math.max(minW, Math.min(newWidth, sw));
-            int constrainedH = Math.max(minH, Math.min(newHeight, getMaxImeHeight()));
-            editWidth=constrainedW; editHeight=constrainedH;
-
-            lp.width = constrainedW;
-            lp.height = constrainedH;
-            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-
-            // Keep the complete window inside the screen after every resize.
-            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - constrainedW)));
-            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - constrainedH)));
-            lp.x = imeX;
-            lp.y = imeY;
-            dialog.getWindow().setAttributes(lp);
-            if (keyboardBody != null) setEditingKeyboardSize(editWidth, editHeight);
-
-            // Persist the actual constrained size and position so recreating the IME
-            // does not return to the default dimensions.
-            if (!restoringImeSize) {
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                        .putInt(PREF_WIDTH, constrainedW)
-                        .putInt(PREF_HEIGHT, constrainedH)
-                        .putInt(PREF_X, imeX)
-                        .putInt(PREF_Y, imeY)
-                        .apply();
-            }
-            if (keyboard != null) keyboard.requestLayout();
-            if (relatedBar != null) relatedBar.requestLayout();
-        } catch (Exception ignored) {}
-    }
-
-    public void applyImeWindowSize(int heightPx) {
-        int width = getResources().getDisplayMetrics().widthPixels;
-        updateKeyboardSize(width, heightPx);
-    }
-
-    public void applyImeWindowSize(int widthPx, int heightPx) {
-        updateKeyboardSize(widthPx, heightPx);
-    }
-
-    public void saveCurrentImeDimensions() {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog == null || dialog.getWindow() == null) return;
-            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-            int sw = getSafeScreenWidth();
-            int sh = getSafeScreenHeight();
-            int w = lp.width > 0 && lp.width != WindowManager.LayoutParams.MATCH_PARENT ? lp.width : sw;
-            int h = lp.height > 0 && lp.height != WindowManager.LayoutParams.MATCH_PARENT ? lp.height : dp(380);
-            w = Math.max(dp(400), Math.min(w, sw));
-            h = Math.max(dp(250), Math.min(h, getMaxImeHeight()));
-            imeX = Math.max(0, Math.min(lp.x, Math.max(0, sw - w)));
-            imeY = Math.max(0, Math.min(lp.y, Math.max(0, sh - h)));
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                    .putInt(PREF_WIDTH, w).putInt(PREF_HEIGHT, h)
-                    .putInt(PREF_X, imeX).putInt(PREF_Y, imeY).apply();
-        } catch (Exception ignored) {}
-    }
-
-    public void moveImeWindowBy(int dx, int dy) {
-        try {
-            android.app.Dialog dialog = getWindow();
-            if (dialog == null || dialog.getWindow() == null) return;
-            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
-            int sw = getSafeScreenWidth();
-            int sh = getSafeScreenHeight();
-            int w = lp.width > 0 && lp.width != WindowManager.LayoutParams.MATCH_PARENT ? lp.width : sw;
-            int h = lp.height > 0 ? lp.height : dp(380);
-
-            // With BOTTOM gravity, a positive screen-space drag downward means
-            // decreasing LayoutParams.y. Clamp both axes so no part leaves screen.
-            imeX += dx;
-            imeY -= dy;
-            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - Math.min(sw, w))));
-            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - Math.min(sh, h))));
-
-            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
-            lp.x = imeX;
-            lp.y = imeY;
-            dialog.getWindow().setAttributes(lp);
-            if (keyboardBody != null) setEditingKeyboardSize(editWidth > 0 ? editWidth : w, editHeight > 0 ? editHeight : h);
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                    .putInt(PREF_X, imeX)
-                    .putInt(PREF_Y, imeY)
-                    .apply();
-        } catch (Exception ignored) {}
+        root.addView(relatedBar, new LinearLayout.LayoutParams(-1,dp(40)));
+        root.addView(keyboard);
+        return root;
     }
 
     @Override public boolean onEvaluateFullscreenMode() {
@@ -414,36 +164,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     public java.util.List<String> getClipboardHistory() { return new java.util.ArrayList<>(clipboardHistory); }
     public void pasteHistory(String s) { if (s != null && !s.isEmpty()) { typeUnit(s); } }
 
-    public void resetKeyboardToDefault() {
-        try {
-            imeX = 0;
-            imeY = 0;
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                    .remove(PREF_WIDTH).remove(PREF_HEIGHT)
-                    .remove(PREF_X).remove(PREF_Y).apply();
-            restoringImeSize = true;
-            updateKeyboardSize(getSafeScreenWidth(), dp(380));
-            setEditingKeyboardSize(getSafeScreenWidth(), dp(380));
-            restoringImeSize = false;
-        } catch (Exception ignored) {}
-    }
-
-    public void applySavedDimensions() {
-        try {
-            android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            int w = prefs.getInt(PREF_WIDTH, getSafeScreenWidth());
-            int h = prefs.getInt(PREF_HEIGHT, dp(380));
-            imeX = prefs.getInt(PREF_X, 0);
-            imeY = prefs.getInt(PREF_Y, 0);
-            restoringImeSize = true;
-            updateKeyboardSize(w, h);
-            restoringImeSize = false;
-        } catch (Exception ignored) {}
-    }
-
     @Override public void onStartInputView(android.view.inputmethod.EditorInfo info, boolean restartingInputView) {
         super.onStartInputView(info, restartingInputView);
-        applySavedDimensions();
         if (keyboard != null) keyboard.refreshSuggestions();
     }
 

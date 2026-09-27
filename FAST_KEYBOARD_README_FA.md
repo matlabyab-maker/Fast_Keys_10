@@ -11,7 +11,3 @@
 - نام‌ها و شناسه‌های قدیمی پروژه از ساختار و متن‌های این بسته حذف شده‌اند.
 
 برای ساخت APK آزمایشی، Workflow موجود در `.github/workflows/fast-keyboard-build.yml` اجرا می‌شود.
-
-
-## Window Resize
-Resize uses the IME window WindowManager.LayoutParams. It supports the four corners and four edges while Resize mode is enabled, with bounded minimum/maximum sizes.

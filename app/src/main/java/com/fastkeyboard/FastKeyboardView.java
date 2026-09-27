@@ -16,16 +16,6 @@ import java.util.*;
 public class FastKeyboardView extends View {
     private final FastKeyboardInputMethodService service;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-    // Window-level resize: handles are active only while Resize mode is enabled.
-    private boolean resizeMode = false;
-    private boolean resizing = false;
-    private int resizeEdges = 0;
-    private float resizeStartX, resizeStartY;
-    private int resizeStartW, resizeStartH;
-    private boolean draggingWindow = false;
-    private float dragStartX, dragStartY;
-    private static final int EDGE_LEFT=1, EDGE_RIGHT=2, EDGE_TOP=4, EDGE_BOTTOM=8;
-    private final Paint resizePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     // Pressed-key visual feedback: follows the supplied reference implementation.
     private final Paint pressedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -803,7 +793,6 @@ public class FastKeyboardView extends View {
         keyH=Math.max(1f,h/7f);
         suggestionH=keyH*0.62f;
         drawKeyboard(c);
-        drawResizeOverlay(c);
     }
 
     private float[] visibleRowBounds(){
@@ -851,9 +840,6 @@ public class FastKeyboardView extends View {
             else key(c,x,top,x+cw,bottom,labels[i],NAVY,false);
             x+=cw+gapPx;
         }
-        float bw=dp(54), bh=Math.min(dp(28), Math.max(dp(20), bottom-top-dp(4)));
-        float bl=getWidth()-bw-dp(4), bt=top+dp(2);
-        key(c,bl,bt,getWidth()-dp(4),bt+bh,resizeMode?"Save":"Resize",NAVY,false);
     }
 
     private void keyToolbarText(Canvas c,float l,float t,float r,float b,String label,int color,float size){
@@ -1225,137 +1211,13 @@ public class FastKeyboardView extends View {
         return null;
     }
 
-    private boolean handleWindowDragTouch(MotionEvent e){
-        if(!resizeMode) return false;
-        // The large top strip is the dedicated grab area. It is intentionally
-        // wide so the keyboard can be moved easily with a finger.
-        float handleH = dp(64);
-        float triggerW = dp(70);
-        float edgeKeep = dp(64);
-        // Keep the large grab area separate from the resize edge/corner handles
-        // and from the Save/Resize button. This prevents one touch from being
-        // interpreted as both drag and resize.
-        boolean inGrabArea = e.getY() <= handleH
-                && e.getX() >= edgeKeep
-                && e.getX() < getWidth() - triggerW
-                && e.getY() < dp(42);
-        if(e.getAction()==MotionEvent.ACTION_DOWN && inGrabArea){
-            draggingWindow = true;
-            dragStartX = e.getRawX();
-            dragStartY = e.getRawY();
-            stopRepeat(); clearPressGlowNow();
-            return true;
-        }
-        if(draggingWindow && (e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL)){
-            if(e.getAction()==MotionEvent.ACTION_MOVE){
-                int dx = Math.round(e.getRawX()-dragStartX);
-                int dy = Math.round(e.getRawY()-dragStartY);
-                if(dx!=0 || dy!=0){
-                    service.moveImeWindowBy(dx,dy);
-                    dragStartX=e.getRawX();
-                    dragStartY=e.getRawY();
-                }
-                return true;
-            }
-            draggingWindow=false;
-            invalidate();
-            return true;
-        }
-        return false;
-    }
-
-    private int resizeEdgeAt(float x, float y){
-        if(!resizeMode) return 0;
-        float h=dp(64);
-        int e=0;
-        if(x<=h) e|=EDGE_LEFT;
-        if(x>=getWidth()-h) e|=EDGE_RIGHT;
-        if(y<=h) e|=EDGE_TOP;
-        if(y>=getHeight()-h) e|=EDGE_BOTTOM;
-        return e;
-    }
-
-    private boolean handleResizeTouch(MotionEvent e){
-        if(e.getAction()==MotionEvent.ACTION_DOWN){
-            int edge=resizeEdgeAt(e.getX(),e.getY());
-            if(edge!=0){
-                resizing=true; resizeEdges=edge;
-                resizeStartX=e.getRawX(); resizeStartY=e.getRawY();
-                resizeStartW=getWidth(); resizeStartH=getHeight();
-                stopRepeat(); clearPressGlowNow(); invalidate(); return true;
-            }
-        } else if(resizing && (e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL)){
-            if(e.getAction()==MotionEvent.ACTION_MOVE){
-                float dx=e.getRawX()-resizeStartX, dy=e.getRawY()-resizeStartY;
-                int w=resizeStartW, h=resizeStartH;
-                if((resizeEdges&EDGE_LEFT)!=0) w=resizeStartW-(int)dx;
-                if((resizeEdges&EDGE_RIGHT)!=0) w=resizeStartW+(int)dx;
-                if((resizeEdges&EDGE_TOP)!=0) h=resizeStartH-(int)dy;
-                if((resizeEdges&EDGE_BOTTOM)!=0) h=resizeStartH+(int)dy;
-                int minW=dp(400), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
-                int minH=dp(250), maxH=Math.max(minH,(int)(getResources().getDisplayMetrics().heightPixels*0.60f));
-                w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
-                // Keep the IME window and its internal body at exactly the same
-                // constrained size during the drag. If only the child is resized,
-                // a larger body is clipped by the old IME window and the upper rows
-                // disappear. The service method uses only bounded width/height and
-                // keeps BOTTOM|LEFT gravity, so it does not fall back to Fit Screen.
-                service.updateKeyboardSizeLive(w,h); invalidate(); return true;
-            }
-            // Finishing a drag saves the current size, but DOES NOT leave Resize
-            // mode. The user exits edit mode explicitly with the Save button.
-            // This keeps the handles available for another resize without making
-            // them part of the normal typing/touch area.
-            service.saveEditedKeyboardSize();
-            service.saveCurrentImeDimensions();
-            resizing=false; resizeEdges=0; draggingWindow=false; invalidate(); return true;
-        }
-        return false;
-    }
-
-    private void drawResizeOverlay(Canvas c){
-        if(!resizeMode) return;
-        float handleH=dp(64);
-        resizePaint.setStrokeWidth(dp(4));
-        resizePaint.setStyle(Paint.Style.STROKE);
-        resizePaint.setColor(Color.rgb(20,40,80));
-        float cx=getWidth()/2f;
-        for(int i=-2;i<=2;i++){
-            float yy=dp(20)+i*dp(8);
-            c.drawLine(cx-dp(24),yy,cx+dp(24),yy,resizePaint);
-        }
-        txt(c,"Reset",cx,dp(56),13f,Color.rgb(20,40,80));
-        float s=dp(52);
-        c.drawLine(2,s,2,2,resizePaint); c.drawLine(2,2,s,2,resizePaint);
-        c.drawLine(getWidth()-2,s,getWidth()-2,2,resizePaint); c.drawLine(getWidth()-s,2,getWidth()-2,2,resizePaint);
-        c.drawLine(2,getHeight()-s,2,getHeight()-2,resizePaint); c.drawLine(2,getHeight()-2,s,getHeight()-2,resizePaint);
-        c.drawLine(getWidth()-2,getHeight()-s,getWidth()-2,getHeight()-2,resizePaint); c.drawLine(getWidth()-s,getHeight()-2,getWidth()-2,getHeight()-2,resizePaint);
-    }
-
     @Override public boolean onTouchEvent(MotionEvent e){
         float x = e.getX(), y = e.getY();
-        if(e.getAction()==MotionEvent.ACTION_UP && y < dp(64) && x >= getWidth()-dp(72)){
-            if(resizeMode){
-                resizeMode=false; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
-            } else {
-                resizeMode=true; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
-            }
-            return true;
-        }
-        if(e.getAction()==MotionEvent.ACTION_UP && resizeMode && x >= getWidth()/2f-dp(42) && x <= getWidth()/2f+dp(42) && y < dp(64)){
-            service.resetKeyboardToDefault();
-            resizeMode=false; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
-            return true;
-        }
-        if(handleWindowDragTouch(e)) return true;
-        if(handleResizeTouch(e)) return true;
-
         if(e.getAction()==MotionEvent.ACTION_DOWN){
             stopRepeat();
             pressRectFor(x, y, true);
             handle(x,y);
             if (isRepeatableSymbolAt(x, y)) startSymbolRepeat(x, y);
-            // A normal tap keeps its light briefly; Backspace keeps it lit while held.
             if (!isBackspaceAt(x, y)) {
                 pressHeld=false;
                 handler.removeCallbacks(clearPressGlow);
