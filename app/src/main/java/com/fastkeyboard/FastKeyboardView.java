@@ -853,7 +853,7 @@ public class FastKeyboardView extends View {
         }
         float bw=dp(54), bh=Math.min(dp(28), Math.max(dp(20), bottom-top-dp(4)));
         float bl=getWidth()-bw-dp(4), bt=top+dp(2);
-        key(c,bl,bt,getWidth()-dp(4),bt+bh,resizeMode?"Resize*":"Resize",NAVY,false);
+        key(c,bl,bt,getWidth()-dp(4),bt+bh,resizeMode?"Save":"Resize",NAVY,false);
     }
 
     private void keyToolbarText(Canvas c,float l,float t,float r,float b,String label,int color,float size){
@@ -1231,7 +1231,14 @@ public class FastKeyboardView extends View {
         // wide so the keyboard can be moved easily with a finger.
         float handleH = dp(64);
         float triggerW = dp(70);
-        boolean inGrabArea = e.getY() <= handleH && e.getX() < getWidth() - triggerW;
+        float edgeKeep = dp(64);
+        // Keep the large grab area separate from the resize edge/corner handles
+        // and from the Save/Resize button. This prevents one touch from being
+        // interpreted as both drag and resize.
+        boolean inGrabArea = e.getY() <= handleH
+                && e.getX() >= edgeKeep
+                && e.getX() < getWidth() - triggerW
+                && e.getY() < dp(42);
         if(e.getAction()==MotionEvent.ACTION_DOWN && inGrabArea){
             draggingWindow = true;
             dragStartX = e.getRawX();
@@ -1290,7 +1297,12 @@ public class FastKeyboardView extends View {
                 w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
                 service.updateKeyboardSize(w,h); invalidate(); return true;
             }
-            resizing=false; resizeEdges=0; invalidate(); return true;
+            // Finishing a drag saves the current size, but DOES NOT leave Resize
+            // mode. The user exits edit mode explicitly with the Save button.
+            // This keeps the handles available for another resize without making
+            // them part of the normal typing/touch area.
+            service.saveCurrentImeDimensions();
+            resizing=false; resizeEdges=0; draggingWindow=false; invalidate(); return true;
         }
         return false;
     }
@@ -1306,6 +1318,7 @@ public class FastKeyboardView extends View {
             float yy=dp(20)+i*dp(8);
             c.drawLine(cx-dp(24),yy,cx+dp(24),yy,resizePaint);
         }
+        txt(c,"Reset",cx,dp(56),13f,Color.rgb(20,40,80));
         float s=dp(52);
         c.drawLine(2,s,2,2,resizePaint); c.drawLine(2,2,s,2,resizePaint);
         c.drawLine(getWidth()-2,s,getWidth()-2,2,resizePaint); c.drawLine(getWidth()-s,2,getWidth()-2,2,resizePaint);
@@ -1315,8 +1328,18 @@ public class FastKeyboardView extends View {
 
     @Override public boolean onTouchEvent(MotionEvent e){
         float x = e.getX(), y = e.getY();
-        if(e.getAction()==MotionEvent.ACTION_UP && y < dp(60) && x >= getWidth()-dp(62)){
-            resizeMode=!resizeMode; resizing=false; resizeEdges=0; invalidate(); return true;
+        if(e.getAction()==MotionEvent.ACTION_UP && y < dp(64) && x >= getWidth()-dp(72)){
+            if(resizeMode){
+                resizeMode=false; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
+            } else {
+                resizeMode=true; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
+            }
+            return true;
+        }
+        if(e.getAction()==MotionEvent.ACTION_UP && resizeMode && x >= getWidth()/2f-dp(42) && x <= getWidth()/2f+dp(42) && y < dp(64)){
+            service.resetKeyboardToDefault();
+            resizeMode=false; resizing=false; draggingWindow=false; resizeEdges=0; invalidate();
+            return true;
         }
         if(handleWindowDragTouch(e)) return true;
         if(handleResizeTouch(e)) return true;
