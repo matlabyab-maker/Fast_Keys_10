@@ -109,13 +109,18 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             if(!text.isEmpty()) any=true;
         }
         relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
-        // Do not reset the user's saved window size when suggestions appear.
-        // Only ensure enough height for the suggestion row when it is visible.
+        // Never enlarge the internal body independently of the IME window.
+        // Doing that makes the upper part of the body extend beyond the real
+        // IME window and is exactly what causes the upper rows to be clipped.
+        // The keyboard view already scales all seven drawn rows to its actual
+        // measured height, so the saved/resized window remains the sole size
+        // authority.
         if (keyboardBody != null) {
-            int neededH = any ? dp(420) : dp(250);
-            if (editHeight < neededH) setEditingKeyboardSize(editWidth, neededH);
-            else keyboardBody.requestLayout();
-        } else if (keyboard != null) keyboard.requestLayout();
+            keyboardBody.requestLayout();
+            if (keyboard != null) keyboard.requestLayout();
+        } else if (keyboard != null) {
+            keyboard.requestLayout();
+        }
     }
 
     @Override public View onCreateInputView() {
@@ -132,7 +137,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
 
         keyboardBody=new LinearLayout(this);
         keyboardBody.setOrientation(LinearLayout.VERTICAL);
-        keyboardBody.setGravity(Gravity.BOTTOM);
+        keyboardBody.setGravity(Gravity.TOP);
+        keyboardBody.setWeightSum(1f);
         keyboardBody.setBackgroundColor(android.graphics.Color.WHITE);
 
         relatedBar=new LinearLayout(this);
@@ -156,8 +162,13 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
         }
         keyboardBody.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
+        // The suggestion strip has a fixed height; the actual keyboard gets
+        // the entire remaining height through weight. This is the programmatic
+        // equivalent of XML height=0dp + layout_weight=1 and prevents fixed
+        // row heights from clipping when the keyboard is resized.
         LinearLayout.LayoutParams keyboardLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        keyboardLp.weight = 1f;
         keyboardBody.addView(keyboard, keyboardLp);
 
         android.content.SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
