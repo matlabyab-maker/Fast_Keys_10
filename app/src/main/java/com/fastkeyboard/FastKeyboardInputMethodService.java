@@ -104,15 +104,15 @@ public class FastKeyboardInputMethodService extends InputMethodService {
 
     @Override public View onCreateInputView() {
         // Keep the IME in the normal bottom keyboard area instead of fullscreen/extract mode.
+        // The keyboard itself fills the actual space available in the IME window.
+        // This is important during resize: a fixed child height can be clipped when the
+        // WindowManager height becomes smaller or larger.
         keyboard = new FastKeyboardView(this);
-        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
-
-        // Initial IME window size. Resize changes this WindowManager.LayoutParams directly.
-        applyImeWindowSize(dp(380));
 
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         root.setBackgroundColor(android.graphics.Color.WHITE);
 
         relatedBar=new LinearLayout(this);
@@ -136,7 +136,13 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
         }
         root.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
-        root.addView(keyboard);
+        // Weight keeps every keyboard row inside the real window bounds after Resize.
+        LinearLayout.LayoutParams keyboardLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        root.addView(keyboard, keyboardLp);
+
+        // Initial IME window size. Resize changes this WindowManager.LayoutParams directly.
+        applyImeWindowSize(dp(380));
         return root;
     }
 
@@ -179,6 +185,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             lp.x = imeX;
             lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
+            if (keyboard != null) keyboard.requestLayout();
+            if (relatedBar != null) relatedBar.requestLayout();
         } catch (Exception ignored) {}
     }
 
