@@ -31,10 +31,6 @@ public class FastKeyboardView extends View {
     private float resizeStartY = 0f;
     private int resizeStartWidth = 0;
     private int resizeStartHeight = 0;
-    private int resizeEdgeX = 0;
-    private int resizeEdgeY = 0;
-    private boolean pressedResizeButton = false;
-    private final RectF resizeButtonRect = new RectF();
     private final int minWidthDp = 240;
     private final int maxWidthDp = 900;
     private final int defaultHeightDp = 320;
@@ -88,7 +84,7 @@ public class FastKeyboardView extends View {
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         int savedAlpha = service.getSharedPreferences("fast_keyboard_settings", 0).getInt("keyboard_alpha", 100);
         setAlpha(Math.max(1, Math.min(100, savedAlpha)) / 100f);
-        post(() -> applyKeyboardSizePx(savedKeyboardWidthPx(), savedKeyboardHeightPx()));
+        post(() -> applyKeyboardHeightDp(savedKeyboardHeightDp()));
     }
 
     private void txt(Canvas c,String s,float x,float y,float size,int color){
@@ -379,8 +375,6 @@ public class FastKeyboardView extends View {
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + 0.5f); }
 
     private void applyKeyboardSizePx(int widthPx, int heightPx) {
-        widthPx = clamp(widthPx, dp(minWidthDp), dp(maxWidthDp));
-        heightPx = clamp(heightPx, dp(minHeightDp), dp(maxHeightDp));
         android.view.ViewGroup.LayoutParams lp = getLayoutParams();
         if (lp == null) lp = new android.view.ViewGroup.LayoutParams(widthPx, heightPx);
         lp.width = widthPx;
@@ -388,16 +382,6 @@ public class FastKeyboardView extends View {
         setLayoutParams(lp);
         requestLayout();
         invalidate();
-        // Also resize the actual IME window. This is important because Fast Keyboard
-        // is an InputMethodService; changing only the child View can be ignored by the IME window.
-        try {
-            android.app.Dialog dialog = service.getWindow();
-            if (dialog != null && dialog.getWindow() != null) {
-                android.view.Window win = dialog.getWindow();
-                win.setLayout(widthPx, heightPx);
-                win.setGravity(android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL);
-            }
-        } catch (Throwable ignored) {}
         float density = getResources().getDisplayMetrics().density;
         int widthDp = Math.round(widthPx / density);
         int heightDp = Math.round(heightPx / density);
@@ -421,17 +405,6 @@ public class FastKeyboardView extends View {
         invalidate();
         service.getSharedPreferences("fast_keyboard_settings", 0).edit()
                 .putInt("keyboard_height_dp", clamped).apply();
-    }
-
-
-    private int savedKeyboardWidthPx() {
-        int dpValue = service.getSharedPreferences("fast_keyboard_settings", 0)
-                .getInt("keyboard_width_dp", -1);
-        return dp(dpValue > 0 ? Math.max(minWidthDp, Math.min(maxWidthDp, dpValue)) : 900);
-    }
-
-    private int savedKeyboardHeightPx() {
-        return dp(savedKeyboardHeightDp());
     }
 
     private int savedKeyboardHeightDp() {
@@ -897,14 +870,6 @@ public class FastKeyboardView extends View {
             float cw=usable*widths[i];
             String text=i<4 && i<suggestions.length?suggestions[i]:i==4?"Hidden":"Resize";
             key(c,x,top,x+cw,bottom,text,NAVY,false);
-            if(i==5){
-                resizeButtonRect.set(x,top,x+cw,bottom);
-                if(resizeMode){
-                    p.setColor(Color.rgb(35,145,75)); p.setStyle(Paint.Style.FILL);
-                    c.drawRoundRect(resizeButtonRect,dp(7),dp(7),p);
-                    txt(c,"Resize",resizeButtonRect.centerX(),resizeButtonRect.centerY(),Math.min(18,h*.42f),Color.WHITE);
-                }
-            }
             x+=cw+gapPx;
         }
     }
@@ -1229,7 +1194,6 @@ public class FastKeyboardView extends View {
     @Override public boolean onTouchEvent(MotionEvent e){
         float x = e.getX(), y = e.getY();
 
-        // Resize mode is entered from the dedicated Resize button in the suggestion row.
         if (resizeMode) {
             final float grip=dp(48);
             if(e.getAction()==MotionEvent.ACTION_DOWN){
@@ -1243,8 +1207,6 @@ public class FastKeyboardView extends View {
             }
             if(e.getAction()==MotionEvent.ACTION_MOVE && resizingKeyboard){
                 float dx=e.getRawX()-resizeStartX, dy=e.getRawY()-resizeStartY;
-                // Top/left handles move the corresponding edge while bottom/right handles
-                // move the opposite edge. Thus all four corners can resize the keyboard.
                 int nw=clamp(resizeStartWidth+Math.round(resizeEdgeX*dx),dp(minWidthDp),dp(maxWidthDp));
                 int nh=clamp(resizeStartHeight+Math.round(resizeEdgeY*dy),dp(minHeightDp),dp(maxHeightDp));
                 applyKeyboardSizePx(nw,nh);
@@ -1257,11 +1219,6 @@ public class FastKeyboardView extends View {
         }
 
         if(e.getAction()==MotionEvent.ACTION_DOWN){
-            if(resizeButtonRect.contains(x,y)){
-                pressedResizeButton=true;
-                invalidate();
-                return true;
-            }
             stopRepeat();
             pressRectFor(x, y, true);
             handle(x,y);
@@ -1274,21 +1231,7 @@ public class FastKeyboardView extends View {
             }
             return true;
         }
-        if(e.getAction()==MotionEvent.ACTION_UP){
-            if(pressedResizeButton){
-                pressedResizeButton=false;
-                if(resizeButtonRect.contains(x,y)){
-                    resizeMode=!resizeMode;
-                    resizingKeyboard=false;
-                    invalidate();
-                }
-                return true;
-            }
-            stopRepeat();
-            clearPressGlowNow();
-        }
-        if(e.getAction()==MotionEvent.ACTION_CANCEL){
-            pressedResizeButton=false;
+        if(e.getAction()==MotionEvent.ACTION_UP||e.getAction()==MotionEvent.ACTION_CANCEL){
             stopRepeat();
             clearPressGlowNow();
         }
