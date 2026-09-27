@@ -47,6 +47,19 @@ public class FastKeyboardView extends View {
         {"یک","یکی","یکم"},{"دارم","دارد","دارند"},{"می","میرم","میز"},{"خوب","خوبه","خوبی"},
         {"تایپ","تایپی","تایپ کردن"},{"کلمه","کلمات","کلمه‌های"}
     };
+    private static final String[] TOPIC_WORDS = (
+        "منظومه شمسی خورشید سیاره عطارد زهره زمین مریخ مشتری زحل اورانوس نپتون پلوتون ماه قمر ستاره " +
+        "کهکشان راه شیری سحابی شهاب شهاب سنگ سیارک دنباله دار مدار جاذبه گرانش تلسکوپ رصدخانه نجوم " +
+        "ستاره شناسی کیهان اختر اخترشناسی کسوف خسوف صورت فلکی نور سال نوری ابر اورت " +
+        "بیمه بیمه کار بیمه درمان بیمه درمانی بیمه تکمیلی بیمه تامین اجتماعی بیمه سلامت بیمه عمر " +
+        "بیمه بیکاری بیمه حوادث حق بیمه فرانشیز خسارت غرامت بیمه نامه بیمه شده بیمه گر کارفرما کارگر " +
+        "بازنشستگی مستمری دفترچه درمان پرونده درمانی پوشش بیمه ای هزینه درمان قرارداد بیمه " +
+        "نگهداری کودک مهدکودک مهد کودک پرستار کودک مراقبت کودک پیش دبستانی کودکستان مدرسه دبستان " +
+        "راهنمایی دبیرستان هنرستان دانش آموز معلم مدیر مدرسه کلاس درس امتحان آزمون نمره کارنامه " +
+        "دانشگاه دانشجو استاد دانشکده رشته تحصیلی کارشناسی کارشناسی ارشد دکترا دکتری پژوهش پژوهشگر " +
+        "پایان نامه رساله ترم واحد درسی آموزشگاه مرکز آموزشی کلاس آنلاین آموزش عالی"
+    ).split(" ");
+
     private static final String[] EXTRA_WORDS = (
         "درمان پزشکی سلامت دارو دارویی داروها پزشک پزشکان بیمار بیماران بیماری بیماریها درمانگر پرستار" +
         "پرستاری بیمارستان درمانگاه کلینیک مطب نسخه داروخانه داروساز داروسازی قرص کپسول شربت آمپول تزریق" +
@@ -1052,15 +1065,32 @@ public class FastKeyboardView extends View {
         c.restore();
     }
 
-    public void refreshSuggestions(){
+    private String currentWordForSuggestions(){
         InputConnection ic=service.getCurrentInputConnection();
         CharSequence q=ic==null?null:ic.getTextBeforeCursor(120,0);
-        String word="";
-        if(q!=null){
-            String b=q.toString(); int i=b.length()-1;
-            while(i>=0 && !Character.isWhitespace(b.charAt(i)) && ".,!?؛،:()[]{}\"'«»".indexOf(b.charAt(i))<0) i--;
-            word=b.substring(i+1);
-        }
+        if(q==null) return "";
+        String b=q.toString(); int i=b.length()-1;
+        while(i>=0 && !Character.isWhitespace(b.charAt(i)) && ".,!?؛،:()[]{}\"'«»".indexOf(b.charAt(i))<0) i--;
+        return b.substring(i+1);
+    }
+
+    public String[] getRelatedSuggestions(){
+        String word=currentWordForSuggestions();
+        String w=word.trim().toLowerCase(java.util.Locale.ROOT);
+        if(w.isEmpty()) return new String[]{"","",""};
+        if(w.equals("بیمه") || w.contains("بیمه")) return new String[]{"بیمه درمانی","بیمه تکمیلی","بیمه کار"};
+        if(w.equals("درمان") || w.equals("پزشک") || w.equals("دارو")) return new String[]{"بیمه درمانی","بیمه تکمیلی","پرونده درمانی"};
+        if(w.equals("مدرسه") || w.equals("دبیرستان") || w.equals("دانشگاه") || w.equals("آموزش")) return new String[]{"دانش آموز","رشته تحصیلی","مرکز آموزشی"};
+        if(w.equals("کودک") || w.equals("بچه") || w.contains("مهد")) return new String[]{"نگهداری کودک","مهدکودک","پرستار کودک"};
+        if(w.equals("منظومه") || w.equals("سیاره") || w.equals("ستاره") || w.equals("نجوم")) return new String[]{"منظومه شمسی","ستاره شناسی","کهکشان"};
+        if(w.equals("ماشین") || w.equals("خودرو")) return new String[]{"موتور خودرو","قطعات خودرو","تعمیرات خودرو"};
+        if(w.equals("برنامه") || w.equals("برنامه نویسی") || w.equals("کدنویسی")) return new String[]{"برنامه نویسی","کدنویسی","خطایابی"};
+        if(w.equals("جنگ") || w.equals("ww2") || w.equals("wwii")) return new String[]{"جنگ جهانی دوم","جنگنده","نیروی هوایی"};
+        return new String[]{"","",""};
+    }
+
+    public void refreshSuggestions(){
+        String word=currentWordForSuggestions();
         Arrays.fill(suggestions,"");
         LinkedHashSet<String> found=new LinkedHashSet<>();
         for(String[] group:WORDS) for(String candidate:group)
@@ -1076,6 +1106,10 @@ public class FastKeyboardView extends View {
                 if(candidate!=null && !candidate.isEmpty() && !candidate.equals(word) && candidate.contains(word)) found.add(candidate);
                 if(found.size()>=12) break;
             }
+            for(String candidate:TOPIC_WORDS){
+                if(!candidate.equals(word) && candidate.contains(word)) found.add(candidate);
+                if(found.size()>=12) break;
+            }
         }
         // Fill any remaining suggestion slots from the expanded built-in word bank,
         // while keeping the Hidden button separate.
@@ -1084,9 +1118,14 @@ public class FastKeyboardView extends View {
                 if(candidate!=null && !candidate.isEmpty() && !candidate.equals(word)) found.add(candidate);
                 if(found.size()>=6) break;
             }
+            for(String candidate:TOPIC_WORDS){
+                if(!candidate.equals(word)) found.add(candidate);
+                if(found.size()>=6) break;
+            }
         }
         int n=0; for(String candidate:found){ suggestions[n++]=candidate; if(n>=6) break; }
         invalidate();
+        service.updateRelatedSuggestions();
     }
 
     private void setPressGlow(float l, float t, float r, float b, boolean held){

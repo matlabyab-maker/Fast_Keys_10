@@ -8,6 +8,7 @@ import android.inputmethodservice.InputMethodService;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Gravity;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.ExtractedTextRequest;
@@ -18,13 +19,18 @@ import java.util.List;
 import java.util.ArrayDeque;
 import android.os.SystemClock;
 import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 
 public class FastKeyboardInputMethodService extends InputMethodService {
+    private int dp(float v){ return (int)(v*getResources().getDisplayMetrics().density+0.5f); }
     private static FastKeyboardInputMethodService instance;
     private FastKeyboardView keyboard;
+    private LinearLayout relatedBar;
+    private final TextView[] relatedViews = new TextView[3];
     private SpeechRecognizer speechRecognizer;
     private final LinkedList<String> clipboardHistory = new LinkedList<>();
     private ClipboardManager clipboardManager;
@@ -77,12 +83,52 @@ public class FastKeyboardInputMethodService extends InputMethodService {
 
     public static FastKeyboardInputMethodService getInstance() { return instance; }
 
+    public void updateRelatedSuggestions(){
+        if(relatedBar==null || keyboard==null) return;
+        String[] r=keyboard.getRelatedSuggestions();
+        boolean any=false;
+        for(int i=0;i<3;i++){
+            String text=r[i]==null?"":r[i];
+            relatedViews[i].setText(text);
+            relatedViews[i].setVisibility(text.isEmpty()?View.GONE:View.VISIBLE);
+            if(!text.isEmpty()) any=true;
+        }
+        relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
+    }
+
     @Override public View onCreateInputView() {
         // Keep the IME in the normal bottom keyboard area instead of fullscreen/extract mode.
         keyboard = new FastKeyboardView(this);
-        keyboard.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return keyboard;
+        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
+
+        LinearLayout root=new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(android.graphics.Color.WHITE);
+
+        relatedBar=new LinearLayout(this);
+        relatedBar.setOrientation(LinearLayout.HORIZONTAL);
+        relatedBar.setGravity(Gravity.CENTER_VERTICAL);
+        relatedBar.setPadding(dp(4),dp(3),dp(4),dp(3));
+        relatedBar.setVisibility(View.GONE);
+        for(int i=0;i<3;i++){
+            final int index=i;
+            TextView tv=new TextView(this);
+            relatedViews[i]=tv;
+            tv.setGravity(Gravity.CENTER);
+            tv.setTextColor(android.graphics.Color.rgb(20,40,80));
+            tv.setTextSize(13);
+            tv.setSingleLine(true);
+            tv.setBackgroundColor(android.graphics.Color.rgb(245,245,245));
+            tv.setPadding(dp(6),0,dp(6),0);
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(34),1f);
+            lp.setMargins(dp(3),0,dp(3),0);
+            relatedBar.addView(tv,lp);
+            tv.setOnClickListener(v->{ String t=relatedViews[index].getText().toString(); if(!t.isEmpty()) replaceCurrentWord(t); });
+        }
+        root.addView(relatedBar,new LinearLayout.LayoutParams(-1,dp(40)));
+        root.addView(keyboard);
+        return root;
     }
 
     @Override public boolean onEvaluateFullscreenMode() {
