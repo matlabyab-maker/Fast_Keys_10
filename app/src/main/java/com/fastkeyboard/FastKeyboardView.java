@@ -15,6 +15,9 @@ import java.util.*;
 public class FastKeyboardView extends View {
     private final FastKeyboardInputMethodService service;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    // Pressed-key visual feedback: follows the supplied reference implementation.
+    private final Paint pressedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Handler handler = new Handler();
     private float gap, keyH;
     private boolean caps = false;
@@ -65,6 +68,12 @@ public class FastKeyboardView extends View {
         KEY = service.getSharedPreferences("fast_keyboard_settings", android.content.Context.MODE_PRIVATE)
                 .getInt("keyboard_key_color", DEFAULT_KEY);
         setBackgroundColor(BG);
+        pressedPaint.setColor(Color.rgb(255, 220, 40));
+        pressedPaint.setStyle(Paint.Style.FILL);
+        glowPaint.setColor(Color.YELLOW);
+        glowPaint.setStyle(Paint.Style.FILL);
+        glowPaint.setShadowLayer(dp(12), 0f, 0f, Color.YELLOW);
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         int savedAlpha = service.getSharedPreferences("fast_keyboard_settings", 0).getInt("keyboard_alpha", 100);
         setAlpha(Math.max(1, Math.min(100, savedAlpha)) / 100f);
         post(() -> applyKeyboardHeightDp(savedKeyboardHeightDp()));
@@ -88,6 +97,7 @@ public class FastKeyboardView extends View {
         p.setStrokeWidth(1);
         c.drawRoundRect(l,t,r,b,rad,rad,p);
         p.setStyle(Paint.Style.FILL);
+        drawPressEffectIfNeeded(c,l,t,r,b,square?3:7);
         if(label!=null&&!label.isEmpty()){
             String[] parts=label.split("\\n",-1);
             if(parts.length==2){
@@ -103,7 +113,18 @@ public class FastKeyboardView extends View {
         float rad=square?3:7; c.drawRoundRect(l,t,r,b,rad,rad,p);
         p.setColor(Color.rgb(205,204,199)); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1);
         c.drawRoundRect(l,t,r,b,rad,rad,p); p.setStyle(Paint.Style.FILL);
+        drawPressEffectIfNeeded(c,l,t,r,b,rad);
         if(label!=null&&!label.isEmpty()) txt(c,label,(l+r)/2,(t+b)/2,Math.min(22,(b-t)*.42f),textColor);
+    }
+
+    private void drawPressEffectIfNeeded(Canvas c,float l,float t,float r,float b,float rad){
+        if(!pressGlow) return;
+        // Use the actual pressed rectangle, not the whole row.
+        if(Math.abs(pressL-l)>1.5f || Math.abs(pressT-t)>1.5f ||
+           Math.abs(pressR-r)>1.5f || Math.abs(pressB-b)>1.5f) return;
+        glowPaint.setShadowLayer(dp(12),0f,0f,Color.YELLOW);
+        c.drawRoundRect(new RectF(l,t,r,b),rad,rad,glowPaint);
+        c.drawRoundRect(l,t,r,b,rad,rad,pressedPaint);
     }
 
     private void magnifierIcon(Canvas c,float cx,float cy,float size,boolean active){
@@ -1079,10 +1100,58 @@ public class FastKeyboardView extends View {
     private float rowTop(int row){ return visibleRowBounds()[row]*getHeight(); }
 
     private void pressRectFor(float x,float y,boolean held){
+        RectF rect=findDrawnKeyRect(x,y);
+        if(rect==null){ clearPressGlowNow(); return; }
+        setPressGlow(rect.left,rect.top,rect.right,rect.bottom,held);
+    }
+
+    private RectF findDrawnKeyRect(float x,float y){
         int row=getRowAt(y);
-        if(row<0){clearPressGlowNow();return;}
+        if(row<0) return null;
         float[] b=visibleRowBounds();
-        setPressGlow(0,b[row]*getHeight(),getWidth(),b[row+1]*getHeight(),held);
+        float top=b[row]*getHeight(), bottom=b[row+1]*getHeight();
+        float g=dp(4);
+
+        if(row==0){
+            float[] weights={0.061f,0.061f,0.062f,0.095f,0.104f,0.080f,0.075f,0.076f,0.076f,0.080f,0.085f,0.061f,0.084f};
+            float total=0; for(float q:weights) total+=q;
+            float scale=(getWidth()-g*(weights.length-1))/total, pos=0;
+            for(float q:weights){ float cw=q*scale; if(x>=pos&&x<=pos+cw) return new RectF(pos,top,pos+cw,bottom); pos+=cw+g; }
+            return null;
+        }
+        if(row==1){
+            float[] widths={0.12f,0.16f,0.19f,0.25f,0.13f,0.13f};
+            float usable=getWidth()-g*(widths.length+1), pos=g;
+            for(float q:widths){ float cw=usable*q; if(x>=pos&&x<=pos+cw) return new RectF(pos,top,pos+cw,bottom); pos+=cw+g; }
+            return null;
+        }
+        if(row==2){
+            float reserved=getWidth()*0.115f, cw=(getWidth()-reserved-g*13)/12f;
+            if(x>getWidth()-reserved) return new RectF(getWidth()-reserved+g/2,top,getWidth()-g,bottom);
+            for(int i=0;i<12;i++){ float l=g+i*(cw+g); if(x>=l&&x<=l+cw) return new RectF(l,top,l+cw,bottom); }
+            return null;
+        }
+        if(row==3 || row==4){
+            float reserved=getWidth()*0.087f, left=g, right=getWidth()-reserved-g;
+            int count;
+            if(row==3) count=englishMode?13:13; else count=englishMode?12:13;
+            float cw=(right-left-g*(count-1))/count;
+            for(int i=0;i<count;i++){ float l=left+i*(cw+g); if(x>=l&&x<=l+cw) return new RectF(l,top,l+cw,bottom); }
+            if(x>right) return new RectF(getWidth()-reserved,top,getWidth()-g,bottom);
+            return null;
+        }
+        if(row==5){
+            int count=englishMode?13:14; float left=g,right=getWidth()-g;
+            float cw=(right-left-g*(count-1))/count;
+            for(int i=0;i<count;i++){ float l=left+i*(cw+g); if(x>=l&&x<=l+cw) return new RectF(l,top,l+cw,bottom); }
+            return null;
+        }
+        if(row==6){
+            float[] widths={0.09f,0.09f,0.09f,0.32f,0.07f,0.10f,0.10f,0.075f,0.075f};
+            float total=0; for(float q:widths) total+=q; float scale=(getWidth()-g*(widths.length+1))/total,pos=g;
+            for(float q:widths){ float cw=q*scale; if(x>=pos&&x<=pos+cw) return new RectF(pos,top,pos+cw,bottom); pos+=cw+g; }
+        }
+        return null;
     }
 
     @Override public boolean onTouchEvent(MotionEvent e){
