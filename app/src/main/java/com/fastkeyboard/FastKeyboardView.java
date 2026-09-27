@@ -31,6 +31,9 @@ public class FastKeyboardView extends View {
     private float resizeStartY = 0f;
     private int resizeStartWidth = 0;
     private int resizeStartHeight = 0;
+    // Resize grip direction: -1 = left/top, 0 = none, 1 = right/bottom.
+    private int resizeEdgeX = 0;
+    private int resizeEdgeY = 0;
     private final int minWidthDp = 240;
     private final int maxWidthDp = 900;
     private final int defaultHeightDp = 320;
