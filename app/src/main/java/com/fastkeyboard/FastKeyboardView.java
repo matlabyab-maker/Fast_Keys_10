@@ -1295,10 +1295,12 @@ public class FastKeyboardView extends View {
                 int minW=dp(400), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
                 int minH=dp(250), maxH=Math.max(minH,(int)(getResources().getDisplayMetrics().heightPixels*0.60f));
                 w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
-                // During ACTION_MOVE, resize only the internal keyboard body.
-                // Do not mutate the system-managed IME window; this prevents Android
-                // from re-fitting the IME to its default/full-screen size mid-drag.
-                service.setEditingKeyboardSize(w,h); invalidate(); return true;
+                // Keep the IME window and its internal body at exactly the same
+                // constrained size during the drag. If only the child is resized,
+                // a larger body is clipped by the old IME window and the upper rows
+                // disappear. The service method uses only bounded width/height and
+                // keeps BOTTOM|LEFT gravity, so it does not fall back to Fit Screen.
+                service.updateKeyboardSizeLive(w,h); invalidate(); return true;
             }
             // Finishing a drag saves the current size, but DOES NOT leave Resize
             // mode. The user exits edit mode explicitly with the Save button.

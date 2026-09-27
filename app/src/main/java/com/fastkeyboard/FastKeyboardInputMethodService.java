@@ -241,6 +241,40 @@ public class FastKeyboardInputMethodService extends InputMethodService {
         return dp(380);
     }
 
+    /** Resize the IME window and its internal body together during an active drag.
+     *  No MATCH_PARENT/fullscreen size is requested and the current bottom/left
+     *  position is preserved, preventing the upper rows from being clipped.
+     */
+    public void updateKeyboardSizeLive(int newWidth, int newHeight) {
+        try {
+            int sw = getSafeScreenWidth();
+            int minW = dp(400);
+            int minH = dp(250);
+            int w = Math.max(minW, Math.min(newWidth, sw));
+            int h = Math.max(minH, Math.min(newHeight, getMaxImeHeight()));
+
+            editWidth = w;
+            editHeight = h;
+
+            android.app.Dialog dialog = getWindow();
+            if (dialog != null && dialog.getWindow() != null) {
+                WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+                int sh = getSafeScreenHeight();
+                imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - w)));
+                imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - h)));
+                lp.width = w;
+                lp.height = h;
+                lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+                lp.x = imeX;
+                lp.y = imeY;
+                dialog.getWindow().setAttributes(lp);
+            }
+
+            // Match the internal body to the actual IME window immediately.
+            setEditingKeyboardSize(w, h);
+        } catch (Exception ignored) {}
+    }
+
     public void updateKeyboardSize(int newWidth, int newHeight) {
         try {
             android.app.Dialog dialog = getWindow();
