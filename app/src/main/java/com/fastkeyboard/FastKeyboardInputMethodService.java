@@ -33,6 +33,9 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     private LinearLayout relatedBar;
     private final TextView[] relatedViews = new TextView[3];
     private SpeechRecognizer speechRecognizer;
+    // Floating position of the IME window. x is from the left, y is from the bottom.
+    private int imeX = 0;
+    private int imeY = 0;
     private final LinkedList<String> clipboardHistory = new LinkedList<>();
     private ClipboardManager clipboardManager;
     private ClipboardManager.OnPrimaryClipChangedListener clipListener;
@@ -95,6 +98,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             if(!text.isEmpty()) any=true;
         }
         relatedBar.setVisibility(any?View.VISIBLE:View.GONE);
+        // Keep the whole keyboard visible when the 3-item suggestion bar is shown.
+        applyImeWindowSize(dp(any ? 420 : 380));
     }
 
     @Override public View onCreateInputView() {
@@ -142,7 +147,9 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
             lp.width = WindowManager.LayoutParams.MATCH_PARENT;
             lp.height = heightPx;
-            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+            lp.x = imeX;
+            lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
         } catch (Exception ignored) {}
     }
@@ -154,7 +161,35 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
             lp.width = Math.max(dp(240), widthPx);
             lp.height = Math.max(dp(220), heightPx);
-            lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+            int sw = getResources().getDisplayMetrics().widthPixels;
+            int sh = getResources().getDisplayMetrics().heightPixels;
+            int actualW = Math.min(sw, lp.width);
+            int actualH = Math.min(sh, lp.height);
+            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - actualW)));
+            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - actualH)));
+            lp.x = imeX;
+            lp.y = imeY;
+            dialog.getWindow().setAttributes(lp);
+        } catch (Exception ignored) {}
+    }
+
+    public void moveImeWindowBy(int dx, int dy) {
+        try {
+            android.app.Dialog dialog = getWindow();
+            if (dialog == null || dialog.getWindow() == null) return;
+            WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+            int sw = getResources().getDisplayMetrics().widthPixels;
+            int sh = getResources().getDisplayMetrics().heightPixels;
+            int w = lp.width == WindowManager.LayoutParams.MATCH_PARENT ? sw : lp.width;
+            int h = lp.height > 0 ? lp.height : dp(380);
+            imeX += dx;
+            imeY -= dy;
+            imeX = Math.max(0, Math.min(imeX, Math.max(0, sw - Math.min(sw, w))));
+            imeY = Math.max(0, Math.min(imeY, Math.max(0, sh - Math.min(sh, h))));
+            lp.gravity = Gravity.BOTTOM | Gravity.LEFT;
+            lp.x = imeX;
+            lp.y = imeY;
             dialog.getWindow().setAttributes(lp);
         } catch (Exception ignored) {}
     }

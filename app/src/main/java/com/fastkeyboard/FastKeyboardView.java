@@ -22,6 +22,8 @@ public class FastKeyboardView extends View {
     private int resizeEdges = 0;
     private float resizeStartX, resizeStartY;
     private int resizeStartW, resizeStartH;
+    private boolean draggingWindow = false;
+    private float dragStartX, dragStartY;
     private static final int EDGE_LEFT=1, EDGE_RIGHT=2, EDGE_TOP=4, EDGE_BOTTOM=8;
     private final Paint resizePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     // Pressed-key visual feedback: follows the supplied reference implementation.
@@ -1223,9 +1225,41 @@ public class FastKeyboardView extends View {
         return null;
     }
 
+    private boolean handleWindowDragTouch(MotionEvent e){
+        if(!resizeMode) return false;
+        // The large top strip is the dedicated grab area. It is intentionally
+        // wide so the keyboard can be moved easily with a finger.
+        float handleH = dp(64);
+        float triggerW = dp(70);
+        boolean inGrabArea = e.getY() <= handleH && e.getX() < getWidth() - triggerW;
+        if(e.getAction()==MotionEvent.ACTION_DOWN && inGrabArea){
+            draggingWindow = true;
+            dragStartX = e.getRawX();
+            dragStartY = e.getRawY();
+            stopRepeat(); clearPressGlowNow();
+            return true;
+        }
+        if(draggingWindow && (e.getAction()==MotionEvent.ACTION_MOVE || e.getAction()==MotionEvent.ACTION_UP || e.getAction()==MotionEvent.ACTION_CANCEL)){
+            if(e.getAction()==MotionEvent.ACTION_MOVE){
+                int dx = Math.round(e.getRawX()-dragStartX);
+                int dy = Math.round(e.getRawY()-dragStartY);
+                if(dx!=0 || dy!=0){
+                    service.moveImeWindowBy(dx,dy);
+                    dragStartX=e.getRawX();
+                    dragStartY=e.getRawY();
+                }
+                return true;
+            }
+            draggingWindow=false;
+            invalidate();
+            return true;
+        }
+        return false;
+    }
+
     private int resizeEdgeAt(float x, float y){
         if(!resizeMode) return 0;
-        float h=dp(22);
+        float h=dp(64);
         int e=0;
         if(x<=h) e|=EDGE_LEFT;
         if(x>=getWidth()-h) e|=EDGE_RIGHT;
@@ -1252,7 +1286,7 @@ public class FastKeyboardView extends View {
                 if((resizeEdges&EDGE_TOP)!=0) h=resizeStartH-(int)dy;
                 if((resizeEdges&EDGE_BOTTOM)!=0) h=resizeStartH+(int)dy;
                 int minW=dp(240), maxW=Math.max(minW,getResources().getDisplayMetrics().widthPixels);
-                int minH=dp(220), maxH=dp(800);
+                int minH=dp(220), maxH=Math.max(minH, getResources().getDisplayMetrics().heightPixels-dp(24));
                 w=Math.max(minW,Math.min(w,maxW)); h=Math.max(minH,Math.min(h,maxH));
                 service.applyImeWindowSize(w,h); invalidate(); return true;
             }
@@ -1263,7 +1297,16 @@ public class FastKeyboardView extends View {
 
     private void drawResizeOverlay(Canvas c){
         if(!resizeMode) return;
-        float s=dp(18);
+        float handleH=dp(64);
+        resizePaint.setStrokeWidth(dp(4));
+        resizePaint.setStyle(Paint.Style.STROKE);
+        resizePaint.setColor(Color.rgb(20,40,80));
+        float cx=getWidth()/2f;
+        for(int i=-2;i<=2;i++){
+            float yy=dp(20)+i*dp(8);
+            c.drawLine(cx-dp(24),yy,cx+dp(24),yy,resizePaint);
+        }
+        float s=dp(52);
         c.drawLine(2,s,2,2,resizePaint); c.drawLine(2,2,s,2,resizePaint);
         c.drawLine(getWidth()-2,s,getWidth()-2,2,resizePaint); c.drawLine(getWidth()-s,2,getWidth()-2,2,resizePaint);
         c.drawLine(2,getHeight()-s,2,getHeight()-2,resizePaint); c.drawLine(2,getHeight()-2,s,getHeight()-2,resizePaint);
@@ -1275,6 +1318,7 @@ public class FastKeyboardView extends View {
         if(e.getAction()==MotionEvent.ACTION_UP && y < dp(60) && x >= getWidth()-dp(62)){
             resizeMode=!resizeMode; resizing=false; resizeEdges=0; invalidate(); return true;
         }
+        if(handleWindowDragTouch(e)) return true;
         if(handleResizeTouch(e)) return true;
 
         if(e.getAction()==MotionEvent.ACTION_DOWN){
