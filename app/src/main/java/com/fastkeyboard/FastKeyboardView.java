@@ -252,10 +252,10 @@ public class FastKeyboardView extends View {
         if(label!=null&&!label.isEmpty()){
             String[] parts=label.split("\\n",-1);
             if(parts.length==2){
-                float fs=Math.min(20,(b-t)*.28f);
+                float fs=Math.min(40,(b-t)*.56f);
                 txt(c,parts[0],(l+r)/2,t+(b-t)*.34f,fs,color);
                 txt(c,parts[1],(l+r)/2,t+(b-t)*.70f,fs,color);
-            } else txt(c,label,(l+r)/2,(t+b)/2,Math.min(22,(b-t)*.42f),color);
+            } else txt(c,label,(l+r)/2,(t+b)/2,Math.min(44,(b-t)*.84f),color);
         }
     }
 
@@ -265,7 +265,7 @@ public class FastKeyboardView extends View {
         p.setColor(Color.rgb(205,204,199)); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1);
         c.drawRoundRect(l,t,r,b,rad,rad,p); p.setStyle(Paint.Style.FILL);
         drawPressEffectIfNeeded(c,l,t,r,b,rad);
-        if(label!=null&&!label.isEmpty()) txt(c,label,(l+r)/2,(t+b)/2,Math.min(22,(b-t)*.42f),textColor);
+        if(label!=null&&!label.isEmpty()) txt(c,label,(l+r)/2,(t+b)/2,Math.min(44,(b-t)*.84f),textColor);
     }
 
     private void drawPressEffectIfNeeded(Canvas c,float l,float t,float r,float b,float rad){
@@ -955,7 +955,7 @@ public class FastKeyboardView extends View {
         float gapPx=dp(4), reserved=getWidth()*0.087f, left=gapPx, right=getWidth()-reserved-gapPx;
         String[] keys=englishMode
                 ? (first?new String[]{"Q","W","E","R","T","Y","U","I","O","P","[", "]","\\"}:new String[]{"Caps","A","S","D","F","G","H","J","K","L",";","'"})
-                : (first?new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ","پ"}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"});
+                : (first?new String[]{"ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج","چ","پ"}:new String[]{"Caps","ش","س","ی","ب","ل","ا","ت","ن","م","ک","گ"});
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
         if(!first && englishMode){
             middleEnglishKeyRects.clear();
@@ -968,10 +968,10 @@ public class FastKeyboardView extends View {
             }
             if(!first && i==0 && englishMode && caps && capsBlinkOn){
                 keyWithBackground(c,l,top,r,bottom,"",Color.WHITE,GREEN,false);
-                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),Color.WHITE);
+                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),Color.WHITE);
             } else {
                 key(c,l,top,r,bottom,"",NAVY,false);
-                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),NAVY);
+                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY);
             }
         }
         if(!first) keyWithBackground(c,getWidth()-reserved,top,getWidth()-gapPx,bottom,"Enter",NAVY,ENTER_BG,false);
@@ -979,12 +979,12 @@ public class FastKeyboardView extends View {
 
     private void drawPersianBottomRow(Canvas c,float top,float bottom){
         float gapPx=dp(4), left=gapPx, right=getWidth()-gapPx;
-        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",",".","/","?","",""}:new String[]{"ش","س","ی","ک","ب","ل","ا","ت","ن","م","و","ء","؟","،"};
+        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و",".","؟","","",""};
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
         for(int i=0;i<count;i++){
             float l=left+i*(cw+gapPx);
             if(keys[i].isEmpty()) key(c,l,top,l+cw,bottom,"",NAVY,false);
-            else { key(c,l,top,l+cw,bottom,"",NAVY,false); txtBold(c,keys[i],l+cw/2f,(top+bottom)/2f,Math.min(22,(bottom-top)*.42f),NAVY); }
+            else { key(c,l,top,l+cw,bottom,"",NAVY,false); txtBold(c,keys[i],l+cw/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY); }
         }
     }
 
@@ -1004,15 +1004,15 @@ public class FastKeyboardView extends View {
     private void drawTwoLineKeyBold(Canvas c,float l,float t,float r,float b,String label,int textColor){
         key(c,l,t,r,b,"",textColor,false);
         String[] a=label.split("\\n",-1);
-        if(a.length==2){ float fs=Math.min(20,(b-t)*.28f); txtBold(c,a[0],(l+r)/2,t+(b-t)*.34f,fs,textColor); txtBold(c,a[1],(l+r)/2,t+(b-t)*.70f,fs,textColor); }
-        else txtBold(c,label,(l+r)/2,(t+b)/2,Math.min(20,(b-t)*.35f),textColor);
+        if(a.length==2){ float fs=Math.min(40,(b-t)*.56f); txtBold(c,a[0],(l+r)/2,t+(b-t)*.34f,fs,textColor); txtBold(c,a[1],(l+r)/2,t+(b-t)*.70f,fs,textColor); }
+        else txtBold(c,label,(l+r)/2,(t+b)/2,Math.min(40,(b-t)*.70f),textColor);
     }
 
     private void drawTwoLineKey(Canvas c,float l,float t,float r,float b,String label,int textColor){
         key(c,l,t,r,b,"",textColor,false);
         String[] a=label.split("\\n",-1);
         if(a.length==2){ txt(c,a[0],(l+r)/2,t+(b-t)*.34f,Math.min(20,(b-t)*.28f),textColor); txt(c,a[1],(l+r)/2,t+(b-t)*.69f,Math.min(20,(b-t)*.28f),textColor); }
-        else txt(c,label,(l+r)/2,(t+b)/2,Math.min(20,(b-t)*.35f),NAVY);
+        else txt(c,label,(l+r)/2,(t+b)/2,Math.min(40,(b-t)*.70f),NAVY);
     }
 
     private void drawEnglishRows(Canvas c,float[] bounds){
@@ -1287,7 +1287,7 @@ public class FastKeyboardView extends View {
             return null;
         }
         if(row==5){
-            int count=englishMode?13:14; float left=g,right=getWidth()-g;
+            int count=englishMode?13:13; float left=g,right=getWidth()-g;
             float cw=(right-left-g*(count-1))/count;
             for(int i=0;i<count;i++){ float l=left+i*(cw+g); if(x>=l&&x<=l+cw) return new RectF(l,top,l+cw,bottom); }
             return null;
@@ -1445,7 +1445,7 @@ public class FastKeyboardView extends View {
         }
         if(row==4){
             if(nx>0.91f){service.enter();return;}
-            String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"Caps","ظ","ط","ز","ر","ذ","ژ","د","ت","ن","م","ک","گ"};
+            String[] keys=englishMode?new String[]{"Caps","a","s","d","f","g","h","j","k","l",";","'"}:new String[]{"Caps","ت","ن","م","ک","گ"};
             // Calculate the same cell geometry used for drawing on every tap.
             // Do not depend on cached rectangles from a previous frame/layout.
             int i=keyIndexAtExactDrawnCell(x, dp(4), getWidth()-getWidth()*0.087f-dp(4), keys.length);
@@ -1455,7 +1455,7 @@ public class FastKeyboardView extends View {
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
         }
         if(row==5){
-            String[] keys=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?","",""}:new String[]{"ش","س","ی","ک","ب","ل","ا","ت","ن","م","و","ء","؟","،"};
+            String[] keys=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و",".","؟","","",""};
             int i=keyIndexAtExactDrawnCell(x,dp(4),getWidth()-dp(4),keys.length);
             if(i<0 || i>=keys.length) return;
             if(englishMode && keys[i].isEmpty()) return;
