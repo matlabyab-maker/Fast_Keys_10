@@ -226,6 +226,35 @@ public class FastKeyboardView extends View {
         c.drawText(s,x,y-(p.ascent()+p.descent())/2,p);
     }
 
+    private void txtFit(Canvas c,String s,float x,float y,float size,int color,float maxWidth,float maxHeight){
+        p.setTypeface(Typeface.create("sans",Typeface.NORMAL));
+        p.setTextAlign(Paint.Align.CENTER);
+        float fs=Math.min(size,maxHeight);
+        p.setTextSize(fs);
+        float w=p.measureText(s);
+        if(w>maxWidth && w>0) fs*=maxWidth/w;
+        p.setTextSize(Math.max(8f,fs));
+        p.setColor(color);
+        p.setStyle(Paint.Style.FILL);
+        c.drawText(s,x,y-(p.ascent()+p.descent())/2,p);
+    }
+
+    private void txtFitBold(Canvas c,String s,float x,float y,float size,int color,float maxWidth,float maxHeight){
+        p.setTypeface(Typeface.create("sans",Typeface.BOLD));
+        p.setTextAlign(Paint.Align.CENTER);
+        float fs=Math.min(size,maxHeight);
+        p.setTextSize(fs);
+        float w=p.measureText(s);
+        if(w>maxWidth && w>0) fs*=maxWidth/w;
+        p.setTextSize(Math.max(8f,fs));
+        p.setColor(color);
+        p.setStyle(Paint.Style.FILL_AND_STROKE);
+        p.setStrokeWidth(Math.max(1.0f,fs*0.055f));
+        c.drawText(s,x,y-(p.ascent()+p.descent())/2,p);
+        p.setStyle(Paint.Style.FILL);
+        p.setStrokeWidth(1f);
+    }
+
     private void txtBold(Canvas c,String s,float x,float y,float size,int color){
         p.setTypeface(Typeface.create("sans",Typeface.BOLD));
         p.setTextSize(size);
@@ -265,7 +294,7 @@ public class FastKeyboardView extends View {
         p.setColor(Color.rgb(205,204,199)); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1);
         c.drawRoundRect(l,t,r,b,rad,rad,p); p.setStyle(Paint.Style.FILL);
         drawPressEffectIfNeeded(c,l,t,r,b,rad);
-        if(label!=null&&!label.isEmpty()) txt(c,label,(l+r)/2,(t+b)/2,Math.min(44,(b-t)*.84f),textColor);
+        if(label!=null&&!label.isEmpty()) txtFit(c,label,(l+r)/2,(t+b)/2,Math.min(44,(b-t)*.84f),textColor,(r-l)*.82f,(b-t)*.78f);
     }
 
     private void drawPressEffectIfNeeded(Canvas c,float l,float t,float r,float b,float rad){
@@ -968,10 +997,10 @@ public class FastKeyboardView extends View {
             }
             if(!first && i==0 && englishMode && caps && capsBlinkOn){
                 keyWithBackground(c,l,top,r,bottom,"",Color.WHITE,GREEN,false);
-                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),Color.WHITE);
+                txtFitBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),Color.WHITE,(r-l)*.80f,(bottom-top)*.78f);
             } else {
                 key(c,l,top,r,bottom,"",NAVY,false);
-                txtBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY);
+                txtFitBold(c,keys[i],(l+r)/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY,(r-l)*.80f,(bottom-top)*.78f);
             }
         }
         if(!first) keyWithBackground(c,getWidth()-reserved,top,getWidth()-gapPx,bottom,"Enter",NAVY,ENTER_BG,false);
@@ -979,12 +1008,12 @@ public class FastKeyboardView extends View {
 
     private void drawPersianBottomRow(Canvas c,float top,float bottom){
         float gapPx=dp(4), left=gapPx, right=getWidth()-gapPx;
-        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و","؟","","",""};
+        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",","","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و","؟","","",""};
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
         for(int i=0;i<count;i++){
             float l=left+i*(cw+gapPx);
             if(keys[i].isEmpty()) key(c,l,top,l+cw,bottom,"",NAVY,false);
-            else { key(c,l,top,l+cw,bottom,"",NAVY,false); txtBold(c,keys[i],l+cw/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY); }
+            else { key(c,l,top,l+cw,bottom,"",NAVY,false); txtFitBold(c,keys[i],l+cw/2f,(top+bottom)/2f,Math.min(44,(bottom-top)*.84f),NAVY,cw*.80f,(bottom-top)*.78f); }
         }
     }
 
@@ -1004,8 +1033,8 @@ public class FastKeyboardView extends View {
     private void drawTwoLineKeyBold(Canvas c,float l,float t,float r,float b,String label,int textColor){
         key(c,l,t,r,b,"",textColor,false);
         String[] a=label.split("\\n",-1);
-        if(a.length==2){ float fs=Math.min(40,(b-t)*.56f); txtBold(c,a[0],(l+r)/2,t+(b-t)*.34f,fs,textColor); txtBold(c,a[1],(l+r)/2,t+(b-t)*.70f,fs,textColor); }
-        else txtBold(c,label,(l+r)/2,(t+b)/2,Math.min(40,(b-t)*.70f),textColor);
+        if(a.length==2){ float fs=Math.min(40,(b-t)*.56f); txtFitBold(c,a[0],(l+r)/2,t+(b-t)*.34f,fs,textColor,(r-l)*.80f,(b-t)*.34f); txtFitBold(c,a[1],(l+r)/2,t+(b-t)*.70f,fs,textColor,(r-l)*.80f,(b-t)*.34f); }
+        else txtFitBold(c,label,(l+r)/2,(t+b)/2,Math.min(40,(b-t)*.70f),textColor,(r-l)*.80f,(b-t)*.72f);
     }
 
     private void drawTwoLineKey(Canvas c,float l,float t,float r,float b,String label,int textColor){
