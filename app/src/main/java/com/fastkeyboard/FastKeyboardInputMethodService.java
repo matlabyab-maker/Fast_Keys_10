@@ -107,9 +107,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
                 dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
             }
         } catch (Exception ignored) {}
-        keyboard = new FastKeyboardView(this);
-        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
+        // XML/AppCompatButton keyboard is the active keyboard view.
+        // The legacy Canvas keyboard is not instantiated here.
         xmlKeyboard = new XmlKeyboardView(this, this);
         xmlKeyboard.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
