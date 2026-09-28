@@ -48,7 +48,6 @@ public class XmlKeyboardView extends LinearLayout {
         findViewById(R.id.key_space).setOnClickListener(v->service.type(" "));
         findViewById(R.id.key_backspace).setOnClickListener(v->service.backspace());
         findViewById(R.id.key_backspace_en).setOnClickListener(v->service.backspace());
-        findViewById(R.id.key_enter).setOnClickListener(v->service.enter());
         findViewById(R.id.key_enter_en).setOnClickListener(v->service.enter());
         findViewById(R.id.key_left).setOnClickListener(v->service.moveCursorHorizontal(-1));
         findViewById(R.id.key_right).setOnClickListener(v->service.moveCursorHorizontal(1));
@@ -60,7 +59,6 @@ public class XmlKeyboardView extends LinearLayout {
         findViewById(R.id.key_redo).setOnClickListener(v->service.redo());
         findViewById(R.id.key_mic).setOnClickListener(v->service.voiceSearch(english?"en-US":"fa-IR"));
         findViewById(R.id.key_globe).setOnClickListener(v->{english=!english; updateLanguageVisibility();});
-        findViewById(R.id.key_caps).setOnClickListener(v->{caps=!caps;});
         findViewById(R.id.key_caps_en).setOnClickListener(v->{caps=!caps;});
         findViewById(R.id.key_hidden).setOnClickListener(v->{ setVisibility(GONE); });
         findViewById(R.id.key_symbols).setOnClickListener(v->service.typeUnit("123"));
