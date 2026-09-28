@@ -30,7 +30,6 @@ public class FastKeyboardInputMethodService extends InputMethodService {
     private int dp(float v){ return (int)(v*getResources().getDisplayMetrics().density+0.5f); }
     private static FastKeyboardInputMethodService instance;
     private FastKeyboardView keyboard;
-    private XmlKeyboardView xmlKeyboard;
     private LinearLayout relatedBar;
     private final TextView[] relatedViews = new TextView[3];
     private SpeechRecognizer speechRecognizer;
@@ -107,10 +106,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
                 dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
             }
         } catch (Exception ignored) {}
-        // XML/AppCompatButton keyboard is the active keyboard view.
-        // The legacy Canvas keyboard is not instantiated here.
-        xmlKeyboard = new XmlKeyboardView(this, this);
-        xmlKeyboard.setLayoutParams(new LinearLayout.LayoutParams(
+        keyboard = new FastKeyboardView(this);
+        keyboard.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(380)));
 
         LinearLayout root = new LinearLayout(this);
@@ -141,19 +138,19 @@ public class FastKeyboardInputMethodService extends InputMethodService {
             });
         }
         root.addView(relatedBar, new LinearLayout.LayoutParams(-1,dp(40)));
-        root.addView(xmlKeyboard);
+        root.addView(keyboard);
         return root;
     }
 
     public void setKeyboardScale(float scale) {
         keyboardScale = Math.max(0.40f, Math.min(1.0f, scale));
-        if (xmlKeyboard == null) return;
+        if (keyboard == null) return;
         int keyboardHeight = dp(380f * keyboardScale);
-        ViewGroup.LayoutParams kp = xmlKeyboard.getLayoutParams();
+        ViewGroup.LayoutParams kp = keyboard.getLayoutParams();
         if (kp == null) kp = new LinearLayout.LayoutParams(-1, keyboardHeight);
         kp.width = ViewGroup.LayoutParams.MATCH_PARENT;
         kp.height = keyboardHeight;
-        xmlKeyboard.setLayoutParams(kp);
+        keyboard.setLayoutParams(kp);
         try {
             android.app.Dialog dialog = getWindow();
             if (dialog != null && dialog.getWindow() != null) {
@@ -164,8 +161,8 @@ public class FastKeyboardInputMethodService extends InputMethodService {
                 dialog.getWindow().setAttributes(wp);
             }
         } catch (Exception ignored) {}
-        xmlKeyboard.requestLayout();
-        xmlKeyboard.invalidate();
+        keyboard.requestLayout();
+        keyboard.invalidate();
     }
 
     public float getKeyboardScale() { return keyboardScale; }
