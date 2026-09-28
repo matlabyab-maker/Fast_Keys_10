@@ -979,7 +979,7 @@ public class FastKeyboardView extends View {
 
     private void drawPersianBottomRow(Canvas c,float top,float bottom){
         float gapPx=dp(4), left=gapPx, right=getWidth()-gapPx;
-        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و",".","؟","","",""};
+        String[] keys=englishMode?new String[]{"Z","X","C","V","B","N","M",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و","؟","","",""};
         int count=keys.length; float cw=(right-left-gapPx*(count-1))/count;
         for(int i=0;i<count;i++){
             float l=left+i*(cw+gapPx);
@@ -1455,7 +1455,7 @@ public class FastKeyboardView extends View {
             service.type(englishMode ? (caps?keys[i].toUpperCase(Locale.US):keys[i]) : keys[i]); return;
         }
         if(row==5){
-            String[] keys=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و",".","؟","","",""};
+            String[] keys=englishMode?new String[]{"z","x","c","v","b","n","m",",",".","/","?","",""}:new String[]{"ظ","ط","ز","ر","ذ","د","ئ","و","؟","","",""};
             int i=keyIndexAtExactDrawnCell(x,dp(4),getWidth()-dp(4),keys.length);
             if(i<0 || i>=keys.length) return;
             if(englishMode && keys[i].isEmpty()) return;
